@@ -1,0 +1,5 @@
+Bonsai PQ2_0 two-instance co-residency (h33), PrismML fork llama-server, 2x ctx 8192, -ngl 99, 16.5 GiB GPU resident, concurrent curl requests n=300 temp 0, canonical prompt:
+arm 1: instance A 30.40 t/s + instance B 30.38 t/s = 60.8 aggregate
+arm 2: instance A 30.29 t/s + instance B 30.36 t/s = 60.6 aggregate
+single-instance reference (h28): 64.1 median
+verdict: aggregate 60.7 median is BELOW single-instance 64.1 — the card is bandwidth-bound, co-residency does not multiply throughput. Each instance runs ~47% of single speed. The value is two independent parallel streams (agent concurrency), not speed. Corrects the h28 estimate of ~128 aggregate.

@@ -1,0 +1,7 @@
+ik_llama.cpp stack context-ceiling bisect (h32), q8_0 KV, MTP n-max 4 active, GGML_CUDA_FORCE_MMQ=1, n=200 gen, temp 0, canonical prompt:
+ctx 49152: 65.52 t/s, 0 OOM errors
+ctx 57344: 65.22 t/s, 0 OOM errors
+ctx 61440: 66.04 t/s, 0 OOM errors
+ctx 63488: OOM (2 error lines, no eval)
+ctx 65536: OOM (2 error lines, no eval)
+verdict: max working context = 61440 tokens; decode holds ~65-66 t/s at fill-untested light load; narrows h30's open range (was 40960-98304)

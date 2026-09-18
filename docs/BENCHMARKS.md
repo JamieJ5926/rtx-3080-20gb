@@ -39,13 +39,12 @@ Same-day upstream control 67.2 (67.1/67.2/67.3), within 1% of 67.9.
 | orcarouter uncensored IQ4_XS, draft-mtp | 60.2 | 3 | kept-option (-11.4% vs censored) |
 | orcarouter uncensored, n-max 2 | 57.3 | 3 | n-max 3 beats it here |
 
-Context (h30, n=1 scoping): ik q8_0 KV ctx 40960 at 27.8k fill — prefill 988.6, decode 80.4; Bonsai prefill 1045.7, decode 53.9. ik OOMs at 98304.
+Context (h30, n=1 scoping): ik q8_0 KV ctx 40960 at 27.8k fill — prefill 988.6, decode 80.4; Bonsai prefill 1045.7, decode 53.9.
 
-Raw files: `results/*.txt`, `results/qwen38-27b-gen.json`, `results/burn{10,30}.csv`, `results/2026-09-18.md`.
+Context ceiling (h32, n=1 per point): ik q8_0 KV sweeps clean at 49152/57344/61440 (~65-66 t/s at n=200); 63488 and 65536 OOM. **Max working context: 61440.**
+Bonsai co-residency (h33, 2 arms): two Prism llama-server PQ2_0 instances, concurrent 300-token requests — 30.4+30.4 = 60.8 and 30.3+30.4 = 60.6 aggregate vs 64.1 single. No throughput multiplier; value is two parallel streams.
 
 ## Unconverted leads
 
 - HyperQwen stack speed on a bandwidth-matched card (see `docs/MODEL-STATUS.md` — blocked on VRAM)
 - Memory OC needs root (h25: sudo/docker both refused on this box)
-- ik context ceiling bisect between 40960 and 98304
-- Bonsai 2-instance parallel-agent aggregate benchmark
