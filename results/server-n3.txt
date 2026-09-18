@@ -1,0 +1,2 @@
+llama-server IQ4 MTP2 n=3: 67.13 68.15 67.81 median 67.81
+reverted vs llama-cli 67.9 (noise)

@@ -1,0 +1,2 @@
+IQ4 MTP2 q4_0 KV n=3: 60.9 60.8 60.8 median 60.8
+reverted vs 67.9

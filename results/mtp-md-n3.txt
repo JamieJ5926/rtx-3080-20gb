@@ -1,0 +1,2 @@
+IQ4 draft-mtp -md mtp-Q4_0 n=3: 67.1 66.6 66.7 median 66.7
+reverted vs 67.9

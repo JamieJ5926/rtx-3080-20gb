@@ -1,0 +1,2 @@
+IQ4 MTP2 --spec-draft-n-max 8 n=3: 43.8 43.1 44.1 median 43.8
+reverted vs 67.9 default n-max 3

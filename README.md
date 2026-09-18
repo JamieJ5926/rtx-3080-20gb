@@ -61,6 +61,6 @@ Metric: median generate tok/s, 600 tokens, temperature 0, real visible text. Hig
 
 Kept stack: Unsloth `Qwen3.8-27B-UD-IQ4_XS.gguf` with `llama-cli -ngl 99 -fa on --spec-type draft-mtp`.
 
-Tried and reverted: llama.cpp no-draft (34.2), `--spec-draft-n-max 8` (43.8), `-ctk q8_0 -ctv q8_0` (52.1). Power already at 320 W max; clock lock needs root.
+Tried and reverted: no-draft 34.2, IQ3_S 54.7, Q4_K_S 49.7, n-max 8/4, q8/q4 KV, ub 2048, ngram 35.2, fa-off 54.5, extra MTP `-md` 66.7, llama-server 67.8. Power already 320 W max. Clock lock needs root. 8k context OOM (13 GB extra). `draft-simple -md` segfaulted.
 
-Later, not run: long-context prompt processing, decode after KV has grown, batch and concurrent agents, vLLM or SGLang.
+Not run: vLLM or SGLang, batch/concurrent agents. Clocks need root.
