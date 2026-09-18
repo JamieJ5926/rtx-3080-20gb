@@ -1,0 +1,14 @@
+orcarouter uncensored IQ4_XS context sweep (h34), upstream llama-cli b10809, draft-mtp, q8_0 KV, n=200 gen temp 0 light fill:
+ctx 16384: 58.7 t/s, 0 OOM
+ctx 32768: 58.4 t/s, 0 OOM
+ctx 40960: 58.1 t/s, 0 OOM
+ctx 49152: 58.0 t/s, 0 OOM
+ctx 61440: 58.1 t/s, 0 OOM
+ctx 73728: 58.8 t/s, 0 OOM
+ctx 81920: 58.7 t/s, 0 OOM
+ctx 98304: 58.3 t/s, 0 OOM
+ctx 114688: OOM (3 lines)
+ctx 131072: OOM (4 lines)
+ctx 262144: OOM (3 lines)
+fill test at 98304: ~24k-token prompt filled, decode 45.4 t/s, 0 OOM (-22% vs light fill 58.3)
+verdict: max working context 98304 with q8_0 KV; decode holds 58+ light and 45.4 at 24k fill; model native ctx 262144 unreachable on 20 GB (needs ~4x KV)
