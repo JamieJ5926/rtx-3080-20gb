@@ -1,106 +1,26 @@
 # RTX 3080 20 GB
 
-Measurement log for a modded GeForce RTX 3080 with 20 GB VRAM on CUDA Linux. Not a distro project. Weights are not in this repo.
+Serving benchmarks for a modded GeForce RTX 3080 (20480 MiB, GA102) on CUDA Linux. Not a distro project. Weights are not in this repo.
 
-## Hardware
+## Current best: 70.51 tok/s
 
-- GPU: NVIDIA GeForce RTX 3080 (GA102), `42:00.0`
-- VRAM: **20480 MiB** (mod, not 10 GB)
-- Host: AMD X399 / Ryzen Threadripper 1920X
-- PCIe: x16, host max gen 3. Idle gen 1. Under load gen 3 x16
-- Driver: `nvidia-open-dkms` 610.57.04, CUDA 13.3 (`nvcc` V13.3.73)
+ik_llama.cpp + `ubergarm/Qwen3.8-27B-MTP-IQ4_KS.gguf` + MTP n-max 4 + `GGML_CUDA_FORCE_MMQ=1` — 70.51 median generate tok/s (600 tokens, temp 0, n=3), up from the 41.05 Ollama baseline.
 
-## 2026-09-18
+| Model | tok/s | Role |
+|---|---|---|
+| ik IQ4_KS MTP n4 + MMQ | **70.51** | daily driver |
+| Bonsai PQ2_0 ternary | 64.1 | co-residency (2× instance), ctx 131072 |
+| orcarouter uncensored IQ4_XS | 60.2 | uncensored option, quality stock-equal |
+| upstream llama.cpp IQ4_XS | 67.9 | reference harness |
 
-### Detect and CUDA
+## Repo map
 
-`memory.total` = 20480 MiB. Idle ~38 C, ~25 W / 320 W, P8. 0 Xid, 0 AER.
+- `docs/HARDWARE.md` — card and host facts, VRAM ceiling, bandwidth (~760 GB/s at 320-bit)
+- `docs/MODEL-STATUS.md` — per-model kept stacks, secondaries, blocked paths (vLLM/HyperQwen)
+- `docs/BENCHMARKS.md` — protocol, full results tables, unconverted leads
+- `docs/TROUBLESHOOTING.md` — gotchas: llama.cpp flags, SSH quoting, the vLLM OOM debugging trail
+- `decision.tsv` — the experiment ledger, one row per hillclimb attempt (h0-h38)
+- `results/` — raw arm outputs, burn CSVs, day notes
+- `scripts/` — measurement helpers (`measure_gen.py`)
 
-`probes/compute.cu` SAXPY n=2^24, 0 mismatches. Load: gen 3 x16, P2, 64 W, 42 C.
-
-### VRAM walk
-
-| Alloc | During-run used | Verify | Notes |
-|---|---|---|---|
-| 12 GiB | 12874 / 20480 | 0 | 43 C, 96 W, gen 3 x16 |
-| 18 GiB | 19018 / 20480 | 0 | 45 C, 96 W |
-| 19 GiB | OOM | | display ~360 MiB |
-| 18.5 GiB | **19530 / 20480** | 0 | 20 s hold, 0 Xid |
-
-20 GB is addressable. 18.5 GiB is the ceiling with a desktop up.
-
-### Sustained burn (`probes/burn.cu`)
-
-| Run | Util | Temp | Power | SM clock | PCIe | Xid |
-|---|---|---|---|---|---|---|
-| 10 min | 99% | 61→79→76 C | 255–272 W | 1680–1815 | gen 3 x16 | 0 |
-| 30 min | 99% | 74–78 C | 258–271 W | 1680–1785 | gen 3 x16 | 0 |
-
-CSV: `results/burn10.csv`, `results/burn30.csv`.
-
-### Qwen3.8 27B
-
-600 tokens, temperature 0. Think-on is not answer speed: all 600 tokens went into thinking and the visible response was empty (`resp_len=0`).
-
-| Setup | Generate tok/s | n | Notes |
-|---|---|---|---|
-| Ollama think-on | 49.3 median | 3 | empty visible answer |
-| Ollama think-off | 41.05 median | 3 | usable text. First product baseline |
-| llama.cpp CUDA no-draft | 34.2 median | 3 | reverted as speed |
-| llama.cpp `--spec-type draft-mtp` Ollama 16 GB blob | 50.95 median | 6 | first real-text CUDA decode win |
-| llama.cpp `--spec-type draft-mtp` Unsloth UD-Q3_K_XL 13.15 GB | 60.7 median | 3 | kept vs 16 GB blob. Lost to IQ4_XS |
-| llama.cpp `--spec-type draft-mtp` Unsloth UD-IQ4_XS 14.25 GB | **67.9 median** | 3 | kept. Current best |
-
-IQ4_XS is 14.25 GB on disk. The 16 GB Ollama blob used about 18 GB of 20 GB VRAM under MTP2.
-
-Raw: `results/qwen38-27b-gen.json`, `results/mtp2-n6.txt`, `results/q3-mtp2-n3.txt`, `results/iq4-mtp2-n3.txt`.
-
-## Hillclimb
-
-Metric: median generate tok/s, 600 tokens, temperature 0, real visible text. Higher is better.
-
-Kept stack: Unsloth `Qwen3.8-27B-UD-IQ4_XS.gguf` with `llama-cli -ngl 99 -fa on --spec-type draft-mtp`.
-
-Tried and reverted: no-draft 34.2, IQ3_S 54.7, Q4_K_S 49.7, n-max 8/4, q8/q4 KV, ub 2048, ngram 35.2, fa-off 54.5, extra MTP `-md` 66.7, llama-server 67.8. Power already 320 W max. Clock lock needs root. 8k context OOM (13 GB extra). `draft-simple -md` segfaulted.
-
-Not run: vLLM or SGLang, batch/concurrent agents. Clocks need root.
-
-### 2026-09-18 hillclimb day 2 (h20-h24)
-
-Same-day upstream control reproduced 67.2 (67.1/67.2/67.3), within 1% of 67.9.
-
-| Setup | Generate tok/s | n | Verdict |
-|---|---|---|---|
-| upstream n-max 4 + p-min 0.65 | 58.0 median | 3 | reverted (ungated n-max 4 was 59.0) |
-| upstream n-max 6 + p-min 0.75 | 49.8 median | 3 | reverted |
-| upstream DFlash2 n-max 7 | 46.5 median | 3 | reverted |
-| ik_llama.cpp IQ4_KS MTP n-max 2 | 66.16 median | 3 | reverted |
-| **ik_llama.cpp IQ4_KS MTP n-max 4** | **69.34 median** (69.01/69.34/69.43, 4th run 69.96) | 3+1 | **kept, new best** |
-
-
-### 2026-09-18 day 2 extension (h25, h27, h28)
-
-- h27: ik MTP depth sweep at n-max 5 (62.96 median) and n-max 6 (59.70, one 29.21 outlier run) — both reverted, n-max 4 confirmed optimum.
-- h25: re-probed; `sudo -n` and `docker` both refused on this box (the docker-group recipe belongs to the home-pc box). Memory OC stays blocked without a password.
-- h28: PrismML Ternary-Bonsai-2-27B PQ2_0 (ternary Qwen3.8-27B, 7.2 GiB at 2.13 bpw) on the PrismML llama.cpp fork reads 64.1 median (64.0/64.1/64.1), -7.6% vs the ik best. The pack carries no MTP head (no `nextn`/`blk.64` tensors), so no speculative decode. Kept as a co-residency option: two PQ2_0 instances fit on 20 GB for parallel agentic load. Quality is PrismML's own 14-benchmark table (98.2% of FP16 average, tool calling 74.92 vs 76.74, coding level) — single source, not independently verified here. Raw: `results/bonsai2-pq2-n3.txt`.
-
-### 2026-09-18 day 2 final best (h29)
-
-`GGML_CUDA_FORCE_MMQ=1` on the ik stack reads 70.51 median (70.28/70.51/70.57), +1.7% over h23 and +4.9% over the same-day control 67.2. Kept: the current best single-stream stack is ik_llama.cpp IQ4_KS MTP n-max 4 with `GGML_CUDA_FORCE_MMQ=1` exported. Lead came from a 5090 llama.cpp config on r/LocalLLaMA. Raw: `results/ik-iq4ks-mmq-n3.txt`.
-
-### 2026-09-18 context ceiling (h30)
-
-At a 27.8k-token fill the ik stack with q8_0 KV at ctx 40960 reads prefill 988.6 t/s and decode 80.4 t/s (single scoping run, MTP active, no OOM); Bonsai PQ2_0 reads prefill 1045.7 t/s and decode 53.9 t/s. Decode does not degrade with fill. The ik IQ4_KS stack OOMs at ctx 98304 (per-step checkpoint buffer) and needs 4.77 GiB KV at 131072, so its ceiling is between 40960 and 98304; Bonsai loads ctx 131072 (59.3 t/s at light fill) and is the 120k-context option. Raw: `results/ctx-fill-28k-n1.txt`.
-
-### 2026-09-18 uncensored variants (h31, h26)
-
-orcarouter uncensored IQ4_XS (bartowski repack) on upstream llama-cli draft-mtp: 60.2 median default (60.0/60.2/60.4), 57.3 at forced n-max 2 — -11.4% vs the censored 67.9 same-class stack. Quality is within ~1 point of stock on the independent Abliterlitics panel (MMLU-Pro -0.04, GSM8K -0.46, HumanEval -0.6), so the cost is speed, not capability. MTP runs on the abliterated weights. Raw: `results/orcarouter-uncensored-n3.txt`.
-
-Stock vLLM (PyPI, cu132 wheels) GPTQ-INT4 attempt: the SergiioB checkpoint's weights alone reach 18.61 GiB of the card's 19.57 GiB usable and OOM during init at any gpu-memory-utilization. The lean path is the HyperQwen patched-vLLM stack (3090 24 GB: 121 t/s MTP) with a ~15.7 GiB W4A16 checkpoint, `--enforce-eager`, fp8 KV, `--no-async-scheduling` per HyperQwen issues 107/121. Expected ~98 t/s on this card if bandwidth is ~760 GB/s (unverified; many 20 GB 3080 miner cards are 320-bit). HyperQwen was flagged by some community members as over-promoted; treat its headlines as 24 GB numbers.
-Reddit/X research findings folded in: vLLM AOT on Ampere reaches ~85-100 t/s on 3090-class 24 GB with MTP (h26 stays parked until a 20 GB-fitting INT4 config is confirmed), and the `GGML_CUDA_FORCE_MMQ=1` lead from the same search became the h29 kept arm above.
-New kept stack: ik_llama.cpp (built CUDA 13.3, `GGML_CUDA_F16`, `/home/jamie/ik_llama.cpp/build/bin/llama-cli`) with `ubergarm/Qwen3.8-27B-MTP-IQ4_KS.gguf` 15.75 GiB (PPL 6.9938 vs BF16 6.9540), flags `-ngl 99 -c 4096 -fa on --spec-type mtp:n_max=4,p_min=0.0`. ik CLI lacks `--single-turn`/`-no-cnv`; pipe `-p` with `</dev/null` and a small `-c` (model default 262k KV OOMs at load). Raw: `results/ik-iq4ks-n4.txt`.
-
-Hyprland costs 296 MiB idle and no decode impact; desktop stays (no iGPU on TR 1920X). Headless remains available via `systemctl isolate multi-user.target` if context headroom is ever needed.
-Build: `llama-cli` 0.4.0-dev b10809 (5266f24da7), GNU 16.2.1. All h3+ numbers are on this build.
-
-Candidates from 2026-09-18 research (see `decision.tsv` h20-h26): `--spec-draft-p-min` sweep 0.65-0.75 at n-max 4/6 (community rule 2: gating pays on bandwidth-poor cards), DFlash2 draft (`--spec-type draft-dflash`, ~73 vs ~63 MTP on 2x5060 Ti per PR 27858), ik_llama.cpp `IQ4_KS` + built-in MTP (3090 kept setup: 72.9 t/s decode), headless cost of Hyprland (~360 MiB display, no iGPU on TR 1920X), memory OC (needs root; h6 contradiction to re-probe). Sources: `github.com/sudoingX/qwen38-mtp`, llama.cpp PR 27858, `post.smzdm.com/p/a46m428x`, r/LocalLLaMA backend-comparison thread 1tgis7s.
+Protocol: median generate tok/s, 600 tokens, temperature 0, real visible text, n=3. See `docs/BENCHMARKS.md`.
