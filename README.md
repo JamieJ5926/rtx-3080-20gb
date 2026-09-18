@@ -2,8 +2,6 @@
 
 Measurement log for a modded GeForce RTX 3080 with 20 GB VRAM on CUDA Linux. Not a distro project. Weights are not in this repo.
 
-Mac hillclimb (Metal, different quant): [qwen3.8-27b-uncensored-dflash2-m4-pro](https://github.com/JamieJ5926/qwen3.8-27b-uncensored-dflash2-m4-pro). Vault: `Obsidean/local-model-stack-vault/06 Reference/Performance Log.md`.
-
 ## Hardware
 
 - GPU: NVIDIA GeForce RTX 3080 (GA102), `42:00.0`
@@ -40,48 +38,29 @@ Mac hillclimb (Metal, different quant): [qwen3.8-27b-uncensored-dflash2-m4-pro](
 
 CSV: `results/burn10.csv`, `results/burn30.csv`.
 
-### LLM
+### Qwen3.8 27B
 
-Ollama CUDA 0.33.3 was the first runtime. It is not the hillclimb runtime.
-
-**qwen2.5:32b** (256 tokens): 18753 MiB, 102 prompt tok/s, **7.68 gen tok/s**. `results/ollama-gen.json`.
-
-**qwen3.8:27b** official tag, 17 GB disk, 600 tokens, temperature 0.
-
-The 58.1 tok/s Ollama figure was think-on. All 600 tokens were internal thinking. `resp_len=0`. Do not use it as answer-generation speed.
+600 tokens, temperature 0. Think-on is not answer speed: all 600 tokens went into thinking and the visible response was empty (`resp_len=0`).
 
 | Setup | Generate tok/s | n | Notes |
 |---|---|---|---|
 | Ollama think-on | 49.3 median | 3 | empty visible answer |
-| Ollama think-off | **41.05 median** | 3 | usable text. Product baseline |
+| Ollama think-off | 41.05 median | 3 | usable text. First product baseline |
 | llama.cpp CUDA no-draft | 34.2 median | 3 | reverted as speed |
-| llama.cpp `--spec-type draft-mtp` ollama 16 GB blob | 50.95 median | 6 | first real-text CUDA decode win |
+| llama.cpp `--spec-type draft-mtp` Ollama 16 GB blob | 50.95 median | 6 | first real-text CUDA decode win |
 | llama.cpp `--spec-type draft-mtp` Unsloth UD-Q3_K_XL 13.15 GB | 60.7 median | 3 | kept vs 16 GB blob. Lost to IQ4_XS |
-| llama.cpp `--spec-type draft-mtp` Unsloth UD-IQ4_XS 14.25 GB | **67.9 median** | 3 | kept. +12% vs Q3. +98% vs no-draft 34.2. Stop 51.3 met |
+| llama.cpp `--spec-type draft-mtp` Unsloth UD-IQ4_XS 14.25 GB | **67.9 median** | 3 | kept. Current best |
 
-VRAM at MTP2 load is about 18 GB of 20 on the 16 GB blob. IQ4_XS is 14.25 GB on disk.
+IQ4_XS is 14.25 GB on disk. The 16 GB Ollama blob used about 18 GB of 20 GB VRAM under MTP2.
 
 Raw: `results/qwen38-27b-gen.json`, `results/mtp2-n6.txt`, `results/q3-mtp2-n3.txt`, `results/iq4-mtp2-n3.txt`.
 
-Mac vault Unleashed Q3_K_XL llama.cpp was 8.3–10.4 tok/s. Different quant and stack.
+## Hillclimb
 
-## Hillclimb on NVIDIA
+Metric: median generate tok/s, 600 tokens, temperature 0, real visible text. Higher is better.
 
-DFlash and MLX are Apple-only. Do not use them on this card. The Mac DFlash2 A/B (5.65 vs 5.96 tok/s, rejected) does not transfer.
+Kept stack: Unsloth `Qwen3.8-27B-UD-IQ4_XS.gguf` with `llama-cli -ngl 99 -fa on --spec-type draft-mtp`.
 
-Order:
+Tried and reverted: llama.cpp no-draft (34.2), `--spec-draft-n-max 8` (43.8), `-ctk q8_0 -ctv q8_0` (52.1). Power already at 320 W max; clock lock needs root.
 
-1. **Think off.** First paired number on the same Ollama blob.
-2. **llama.cpp CUDA.** Server `prompt eval` / `eval` lines, empty ctx, 400–600 tokens, flash attention. This matches the vault protocol.
-3. **MTP draft on stock llama.cpp CUDA.** Official Qwen3.8 ships MTP weights. That is the CUDA analogue of DFlash. Same reject rule as Mac: net tok/s must beat no-draft.
-4. **Quant A/B.** Official UD-IQ4_XS vs UD-Q3_K_XL vs this 17 GB blob. Keep ctx short.
-5. Leave power limits and clocks alone until those four have rows in `results/`.
-
-No vLLM or TensorRT until 1–4 exist.
-
-After MTP2 has a median of 3, not before:
-
-6. Long-context prompt processing tok/s.
-7. Sustained decode after KV has grown (vault Metal already fell to 3.57 tok/s at 8K fill).
-8. Batch and concurrent agents.
-9. A runtime faster than Ollama if llama.cpp stays behind (vLLM or SGLang only then).
+Later, not run: long-context prompt processing, decode after KV has grown, batch and concurrent agents, vLLM or SGLang.
