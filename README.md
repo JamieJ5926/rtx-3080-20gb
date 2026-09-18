@@ -91,6 +91,12 @@ Same-day upstream control reproduced 67.2 (67.1/67.2/67.3), within 1% of 67.9.
 ### 2026-09-18 context ceiling (h30)
 
 At a 27.8k-token fill the ik stack with q8_0 KV at ctx 40960 reads prefill 988.6 t/s and decode 80.4 t/s (single scoping run, MTP active, no OOM); Bonsai PQ2_0 reads prefill 1045.7 t/s and decode 53.9 t/s. Decode does not degrade with fill. The ik IQ4_KS stack OOMs at ctx 98304 (per-step checkpoint buffer) and needs 4.77 GiB KV at 131072, so its ceiling is between 40960 and 98304; Bonsai loads ctx 131072 (59.3 t/s at light fill) and is the 120k-context option. Raw: `results/ctx-fill-28k-n1.txt`.
+
+### 2026-09-18 uncensored variants (h31, h26)
+
+orcarouter uncensored IQ4_XS (bartowski repack) on upstream llama-cli draft-mtp: 60.2 median default (60.0/60.2/60.4), 57.3 at forced n-max 2 — -11.4% vs the censored 67.9 same-class stack. Quality is within ~1 point of stock on the independent Abliterlitics panel (MMLU-Pro -0.04, GSM8K -0.46, HumanEval -0.6), so the cost is speed, not capability. MTP runs on the abliterated weights. Raw: `results/orcarouter-uncensored-n3.txt`.
+
+Stock vLLM (PyPI, cu132 wheels) GPTQ-INT4 attempt: the SergiioB checkpoint's weights alone reach 18.61 GiB of the card's 19.57 GiB usable and OOM during init at any gpu-memory-utilization. The lean path is the HyperQwen patched-vLLM stack (3090 24 GB: 121 t/s MTP) with a ~15.7 GiB W4A16 checkpoint, `--enforce-eager`, fp8 KV, `--no-async-scheduling` per HyperQwen issues 107/121. Expected ~98 t/s on this card if bandwidth is ~760 GB/s (unverified; many 20 GB 3080 miner cards are 320-bit). HyperQwen was flagged by some community members as over-promoted; treat its headlines as 24 GB numbers.
 Reddit/X research findings folded in: vLLM AOT on Ampere reaches ~85-100 t/s on 3090-class 24 GB with MTP (h26 stays parked until a 20 GB-fitting INT4 config is confirmed), and the `GGML_CUDA_FORCE_MMQ=1` lead from the same search became the h29 kept arm above.
 New kept stack: ik_llama.cpp (built CUDA 13.3, `GGML_CUDA_F16`, `/home/jamie/ik_llama.cpp/build/bin/llama-cli`) with `ubergarm/Qwen3.8-27B-MTP-IQ4_KS.gguf` 15.75 GiB (PPL 6.9938 vs BF16 6.9540), flags `-ngl 99 -c 4096 -fa on --spec-type mtp:n_max=4,p_min=0.0`. ik CLI lacks `--single-turn`/`-no-cnv`; pipe `-p` with `</dev/null` and a small `-c` (model default 262k KV OOMs at load). Raw: `results/ik-iq4ks-n4.txt`.
 
