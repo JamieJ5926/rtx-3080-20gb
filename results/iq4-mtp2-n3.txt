@@ -1,0 +1,5 @@
+draft-mtp UD-IQ4_XS n=3: 68.0 67.9 67.5 median 67.9
+vs Q3_K_XL 60.7: +11.9%
+vs no-draft 34.2: +98.5%
+vs ollama think-off 41.05: +65.4%
+stop 51.3 met
