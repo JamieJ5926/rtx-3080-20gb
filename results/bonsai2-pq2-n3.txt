@@ -1,0 +1,9 @@
+Bonsai 2 27B PQ2_0 (ternary Qwen3.8-27B, prism fork) n=3: 64.0 64.1 64.1 median 64.1
+upstream llama-cli control same day: 67.2; current best ik IQ4_KS MTP n-max 4: 69.34
+vs control 67.2: -4.6%; vs ik best 69.34: -7.6%
+quant: prism-ml/Ternary-Bonsai-2-27B-gguf PQ2_0.gguf 7,206,168,928 bytes (2.13 bpw)
+build: PrismML-Eng/llama.cpp @ prism-b10687-5d80cff, cmake CUDA 13.3 /opt/cuda, g++-15, /home/jamie/prism-llama.cpp/build/bin/llama-cli
+command: llama-cli -m PQ2_0.gguf -ngl 99 -c 4096 -n 600 --temp 0 -fa on --single-turn --no-display-prompt
+notes: no nextn/blk.64 tensors in pack (MTP head dropped, no spec decode); PTQ1_0 skipped (slower decode on Ampere per upstream table A100 54.7 vs 73.9); two PQ2_0 instances fit on 20 GB (14.4 GiB weights + 2 KV + 296 MiB display)
+quality (PrismML self-reported, single source, unverified here): 98.2% of FP16 avg over 14 thinking-mode benchmarks; BFCL v3 tool calling 74.92 vs 76.74 FP16 (-2.4%); coding level
+verdict: not the single-stream best; kept as co-residency option for parallel agentic load

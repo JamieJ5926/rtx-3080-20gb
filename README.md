@@ -77,6 +77,17 @@ Same-day upstream control reproduced 67.2 (67.1/67.2/67.3), within 1% of 67.9.
 | ik_llama.cpp IQ4_KS MTP n-max 2 | 66.16 median | 3 | reverted |
 | **ik_llama.cpp IQ4_KS MTP n-max 4** | **69.34 median** (69.01/69.34/69.43, 4th run 69.96) | 3+1 | **kept, new best** |
 
+
+### 2026-09-18 day 2 extension (h25, h27, h28)
+
+- h27: ik MTP depth sweep at n-max 5 (62.96 median) and n-max 6 (59.70, one 29.21 outlier run) — both reverted, n-max 4 confirmed optimum.
+- h25: re-probed; `sudo -n` and `docker` both refused on this box (the docker-group recipe belongs to the home-pc box). Memory OC stays blocked without a password.
+- h28: PrismML Ternary-Bonsai-2-27B PQ2_0 (ternary Qwen3.8-27B, 7.2 GiB at 2.13 bpw) on the PrismML llama.cpp fork reads 64.1 median (64.0/64.1/64.1), -7.6% vs the ik best. The pack carries no MTP head (no `nextn`/`blk.64` tensors), so no speculative decode. Kept as a co-residency option: two PQ2_0 instances fit on 20 GB for parallel agentic load. Quality is PrismML's own 14-benchmark table (98.2% of FP16 average, tool calling 74.92 vs 76.74, coding level) — single source, not independently verified here. Raw: `results/bonsai2-pq2-n3.txt`.
+
+### 2026-09-18 day 2 final best (h29)
+
+`GGML_CUDA_FORCE_MMQ=1` on the ik stack reads 70.51 median (70.28/70.51/70.57), +1.7% over h23 and +4.9% over the same-day control 67.2. Kept: the current best single-stream stack is ik_llama.cpp IQ4_KS MTP n-max 4 with `GGML_CUDA_FORCE_MMQ=1` exported. Lead came from a 5090 llama.cpp config on r/LocalLLaMA. Raw: `results/ik-iq4ks-mmq-n3.txt`.
+Reddit/X research findings folded in: vLLM AOT on Ampere reaches ~85-100 t/s on 3090-class 24 GB with MTP (h26 stays parked until a 20 GB-fitting INT4 config is confirmed), and the `GGML_CUDA_FORCE_MMQ=1` lead from the same search became the h29 kept arm above.
 New kept stack: ik_llama.cpp (built CUDA 13.3, `GGML_CUDA_F16`, `/home/jamie/ik_llama.cpp/build/bin/llama-cli`) with `ubergarm/Qwen3.8-27B-MTP-IQ4_KS.gguf` 15.75 GiB (PPL 6.9938 vs BF16 6.9540), flags `-ngl 99 -c 4096 -fa on --spec-type mtp:n_max=4,p_min=0.0`. ik CLI lacks `--single-turn`/`-no-cnv`; pipe `-p` with `</dev/null` and a small `-c` (model default 262k KV OOMs at load). Raw: `results/ik-iq4ks-n4.txt`.
 
 Hyprland costs 296 MiB idle and no decode impact; desktop stays (no iGPU on TR 1920X). Headless remains available via `systemctl isolate multi-user.target` if context headroom is ever needed.

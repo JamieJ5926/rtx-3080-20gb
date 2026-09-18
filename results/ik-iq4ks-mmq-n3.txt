@@ -1,0 +1,6 @@
+ik IQ4_KS MTP n-max 4 + GGML_CUDA_FORCE_MMQ=1 n=3: 70.28 70.51 70.57 median 70.51
+prior best same stack without MMQ: 69.34 median (+1.7%); upstream control today: 67.2 (+4.9%); recorded baseline: 67.9 (+3.8%)
+quant: ubergarm Qwen3.8-27B-MTP-IQ4_KS.gguf 15.75 GiB
+command: GGML_CUDA_FORCE_MMQ=1 llama-cli -m IQ4_KS.gguf -ngl 99 -c 4096 -n 600 --temp 0 -fa on --spec-type mtp:n_max=4,p_min=0.0 --no-display-prompt
+lead: r/LocalLLaMA Qwen3.8 27B setup thread (5090 config uses GGML_CUDA_FORCE_MMQ=1)
+new best: kept (env var on top of h23 stack)
