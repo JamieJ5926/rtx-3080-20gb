@@ -1,0 +1,2 @@
+llama.cpp no-draft n=3: 34.3 34.2 34.2 median 34.2
+draft-mtp n=3: 51.5 50.6 50.8 median 50.8
