@@ -46,17 +46,22 @@ Ollama CUDA 0.33.3 was the first runtime. It is not the hillclimb runtime.
 
 **qwen2.5:32b** (256 tokens): 18753 MiB, 102 prompt tok/s, **7.68 gen tok/s**. `results/ollama-gen.json`.
 
-**qwen3.8:27b** official tag, 17 GB disk, 600 tokens, temperature 0, thinking on. All 600 tokens went into `thinking`. Visible response empty.
+**qwen3.8:27b** official tag, 17 GB disk, 600 tokens, temperature 0.
 
-| Metric | 3080 CUDA | Mac M4 Pro Unleashed Q3_K_XL |
-|---|---|---|
-| Generate | **58.1 tok/s** | 8.3–10.4 tok/s |
-| Prompt | 109 tok/s | ~33 tok/s short |
-| VRAM | **18339 / 20480 MiB** | unified Metal |
+The 58.1 tok/s Ollama figure was think-on. All 600 tokens were internal thinking. `resp_len=0`. Do not use it as answer-generation speed.
 
-Decode: 90–94% util, 57–59 C, 310–318 W, gen 3 x16. `results/qwen38-27b-gen.json`.
+| Setup | Generate tok/s | n | Notes |
+|---|---|---|---|
+| Ollama think-on | 49.3 median | 3 | empty visible answer |
+| Ollama think-off | **41.05 median** | 3 | usable text. Product baseline |
+| llama.cpp CUDA no-draft | 34.2 median | 3 | reverted as speed |
+| llama.cpp `--spec-type draft-mtp` | **50.8 median** | 3, extending to 6 | first real-text CUDA decode win |
 
-Different quant and stack than the Mac log. Directionally the 3080 is much faster on this 27B.
+VRAM at MTP2 load is about 18 GB of 20. Decode 90–94% util, 57–59 C, 310–318 W, gen 3 x16.
+
+Raw: `results/qwen38-27b-gen.json` (think-on one-shot), `results/mtp2-n3.txt`.
+
+Mac vault Unleashed Q3_K_XL llama.cpp was 8.3–10.4 tok/s. Different quant and stack.
 
 ## Hillclimb on NVIDIA
 
