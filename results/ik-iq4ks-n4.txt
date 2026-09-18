@@ -1,0 +1,9 @@
+ik_llama.cpp IQ4_KS MTP n-max 4 n=3: 69.43 69.01 69.34 median 69.34 (4th run 69.96)
+ik n-max 2 arm: 66.92 66.16 65.96 median 66.16
+upstream llama-cli control same day: 67.2 (67.1/67.2/67.3)
+vs upstream control 67.2: +3.2%
+vs recorded baseline 67.9: +2.2%
+quant: ubergarm Qwen3.8-27B-MTP-IQ4_KS.gguf 15.75 GiB (PPL 6.9938 vs BF16 6.9540)
+build: ik_llama.cpp @ main, cmake CUDA GGML_CUDA_F16, nvcc 13.3 /opt/cuda, host g++-15
+command: llama-cli -m IQ4_KS.gguf -ngl 99 -c 4096 -n 600 --temp 0 -fa on --spec-type mtp:n_max=4,p_min=0.0 --no-display-prompt
+new best: kept

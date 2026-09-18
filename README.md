@@ -64,3 +64,22 @@ Kept stack: Unsloth `Qwen3.8-27B-UD-IQ4_XS.gguf` with `llama-cli -ngl 99 -fa on 
 Tried and reverted: no-draft 34.2, IQ3_S 54.7, Q4_K_S 49.7, n-max 8/4, q8/q4 KV, ub 2048, ngram 35.2, fa-off 54.5, extra MTP `-md` 66.7, llama-server 67.8. Power already 320 W max. Clock lock needs root. 8k context OOM (13 GB extra). `draft-simple -md` segfaulted.
 
 Not run: vLLM or SGLang, batch/concurrent agents. Clocks need root.
+
+### 2026-09-18 hillclimb day 2 (h20-h24)
+
+Same-day upstream control reproduced 67.2 (67.1/67.2/67.3), within 1% of 67.9.
+
+| Setup | Generate tok/s | n | Verdict |
+|---|---|---|---|
+| upstream n-max 4 + p-min 0.65 | 58.0 median | 3 | reverted (ungated n-max 4 was 59.0) |
+| upstream n-max 6 + p-min 0.75 | 49.8 median | 3 | reverted |
+| upstream DFlash2 n-max 7 | 46.5 median | 3 | reverted |
+| ik_llama.cpp IQ4_KS MTP n-max 2 | 66.16 median | 3 | reverted |
+| **ik_llama.cpp IQ4_KS MTP n-max 4** | **69.34 median** (69.01/69.34/69.43, 4th run 69.96) | 3+1 | **kept, new best** |
+
+New kept stack: ik_llama.cpp (built CUDA 13.3, `GGML_CUDA_F16`, `/home/jamie/ik_llama.cpp/build/bin/llama-cli`) with `ubergarm/Qwen3.8-27B-MTP-IQ4_KS.gguf` 15.75 GiB (PPL 6.9938 vs BF16 6.9540), flags `-ngl 99 -c 4096 -fa on --spec-type mtp:n_max=4,p_min=0.0`. ik CLI lacks `--single-turn`/`-no-cnv`; pipe `-p` with `</dev/null` and a small `-c` (model default 262k KV OOMs at load). Raw: `results/ik-iq4ks-n4.txt`.
+
+Hyprland costs 296 MiB idle and no decode impact; desktop stays (no iGPU on TR 1920X). Headless remains available via `systemctl isolate multi-user.target` if context headroom is ever needed.
+Build: `llama-cli` 0.4.0-dev b10809 (5266f24da7), GNU 16.2.1. All h3+ numbers are on this build.
+
+Candidates from 2026-09-18 research (see `decision.tsv` h20-h26): `--spec-draft-p-min` sweep 0.65-0.75 at n-max 4/6 (community rule 2: gating pays on bandwidth-poor cards), DFlash2 draft (`--spec-type draft-dflash`, ~73 vs ~63 MTP on 2x5060 Ti per PR 27858), ik_llama.cpp `IQ4_KS` + built-in MTP (3090 kept setup: 72.9 t/s decode), headless cost of Hyprland (~360 MiB display, no iGPU on TR 1920X), memory OC (needs root; h6 contradiction to re-probe). Sources: `github.com/sudoingX/qwen38-mtp`, llama.cpp PR 27858, `post.smzdm.com/p/a46m428x`, r/LocalLLaMA backend-comparison thread 1tgis7s.
