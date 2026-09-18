@@ -1,0 +1,2 @@
+draft-mtp UD-IQ3_S n=3: 54.9 54.7 54.4 median 54.7
+reverted vs IQ4 67.9

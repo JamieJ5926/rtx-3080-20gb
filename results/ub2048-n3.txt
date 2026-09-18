@@ -1,0 +1,2 @@
+IQ4 MTP2 -ub 2048 -b 2048 n=3: 64.9 64.4 64.4 median 64.4
+reverted vs 67.9

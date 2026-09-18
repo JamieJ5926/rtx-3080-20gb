@@ -1,0 +1,2 @@
+IQ4 MTP2 -fa off n=3: 54.7 54.5 54.4 median 54.5
+reverted vs -fa on 67.9

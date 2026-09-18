@@ -1,0 +1,2 @@
+IQ4 ngram-simple n=3: 35.5 35.2 35.2 median 35.2
+reverted vs MTP2 67.9
