@@ -71,3 +71,10 @@ Order:
 5. Leave power limits and clocks alone until those four have rows in `results/`.
 
 No vLLM or TensorRT until 1–4 exist.
+
+After MTP2 has a median of 3, not before:
+
+6. Long-context prompt processing tok/s.
+7. Sustained decode after KV has grown (vault Metal already fell to 3.57 tok/s at 8K fill).
+8. Batch and concurrent agents.
+9. A runtime faster than Ollama if llama.cpp stays behind (vLLM or SGLang only then).
