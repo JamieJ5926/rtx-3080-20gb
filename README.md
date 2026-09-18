@@ -87,6 +87,10 @@ Same-day upstream control reproduced 67.2 (67.1/67.2/67.3), within 1% of 67.9.
 ### 2026-09-18 day 2 final best (h29)
 
 `GGML_CUDA_FORCE_MMQ=1` on the ik stack reads 70.51 median (70.28/70.51/70.57), +1.7% over h23 and +4.9% over the same-day control 67.2. Kept: the current best single-stream stack is ik_llama.cpp IQ4_KS MTP n-max 4 with `GGML_CUDA_FORCE_MMQ=1` exported. Lead came from a 5090 llama.cpp config on r/LocalLLaMA. Raw: `results/ik-iq4ks-mmq-n3.txt`.
+
+### 2026-09-18 context ceiling (h30)
+
+At a 27.8k-token fill the ik stack with q8_0 KV at ctx 40960 reads prefill 988.6 t/s and decode 80.4 t/s (single scoping run, MTP active, no OOM); Bonsai PQ2_0 reads prefill 1045.7 t/s and decode 53.9 t/s. Decode does not degrade with fill. The ik IQ4_KS stack OOMs at ctx 98304 (per-step checkpoint buffer) and needs 4.77 GiB KV at 131072, so its ceiling is between 40960 and 98304; Bonsai loads ctx 131072 (59.3 t/s at light fill) and is the 120k-context option. Raw: `results/ctx-fill-28k-n1.txt`.
 Reddit/X research findings folded in: vLLM AOT on Ampere reaches ~85-100 t/s on 3090-class 24 GB with MTP (h26 stays parked until a 20 GB-fitting INT4 config is confirmed), and the `GGML_CUDA_FORCE_MMQ=1` lead from the same search became the h29 kept arm above.
 New kept stack: ik_llama.cpp (built CUDA 13.3, `GGML_CUDA_F16`, `/home/jamie/ik_llama.cpp/build/bin/llama-cli`) with `ubergarm/Qwen3.8-27B-MTP-IQ4_KS.gguf` 15.75 GiB (PPL 6.9938 vs BF16 6.9540), flags `-ngl 99 -c 4096 -fa on --spec-type mtp:n_max=4,p_min=0.0`. ik CLI lacks `--single-turn`/`-no-cnv`; pipe `-p` with `</dev/null` and a small `-c` (model default 262k KV OOMs at load). Raw: `results/ik-iq4ks-n4.txt`.
 

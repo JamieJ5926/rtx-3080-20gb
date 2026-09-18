@@ -1,0 +1,8 @@
+Context fill test on ~27.8k-token prompt (~107 KB), 200 gen tokens, 2026-09-18:
+ik IQ4_KS MTP n-max 4 + GGML_CUDA_FORCE_MMQ=1 + q8_0 KV, ctx 40960:
+  prefill 988.55 t/s (27840 tokens / 28162 ms), decode 80.43 t/s, no OOM, MTP active
+bonsai PQ2_0 prism fork, ctx 40960:
+  prefill 1045.7 t/s, decode 53.9 t/s
+16k ctx arms failed on prompt length (27840 > 16384), not OOM
+decode does not degrade at fill; it reads above the tiny-ctx 70.51 baseline run
+q8_0 KV on the ik stack fits 40k where upstream f16 KV OOMed at 8k (h19)
