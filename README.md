@@ -55,11 +55,13 @@ The 58.1 tok/s Ollama figure was think-on. All 600 tokens were internal thinking
 | Ollama think-on | 49.3 median | 3 | empty visible answer |
 | Ollama think-off | **41.05 median** | 3 | usable text. Product baseline |
 | llama.cpp CUDA no-draft | 34.2 median | 3 | reverted as speed |
-| llama.cpp `--spec-type draft-mtp` | **50.95 median** | 6 | first real-text CUDA decode win. Stop 51.3 not met |
+| llama.cpp `--spec-type draft-mtp` ollama 16 GB blob | 50.95 median | 6 | first real-text CUDA decode win |
+| llama.cpp `--spec-type draft-mtp` Unsloth UD-Q3_K_XL 13.15 GB | **60.7 median** | 3 | kept. +19% vs blob MTP2. +77% vs no-draft 34.2. Beats stop 51.3 |
+| llama.cpp `--spec-type draft-mtp` Unsloth UD-IQ4_XS | pending | 3 | same command, in flight |
 
-VRAM at MTP2 load is about 18 GB of 20. Decode 90–94% util, 57–59 C, 310–318 W, gen 3 x16.
+VRAM at MTP2 load is about 18 GB of 20 on the 16 GB blob. Q3_K_XL is 13.15 GB on disk.
 
-Raw: `results/qwen38-27b-gen.json` (think-on one-shot), `results/mtp2-n6.txt`.
+Raw: `results/qwen38-27b-gen.json` (think-on one-shot), `results/mtp2-n6.txt`, `results/q3-mtp2-n3.txt`.
 
 Mac vault Unleashed Q3_K_XL llama.cpp was 8.3–10.4 tok/s. Different quant and stack.
 
