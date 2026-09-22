@@ -73,3 +73,27 @@ A Zhihu test measured the modded 3080 20G at 83 percent of an RTX 3090 24G in to
 ### Driver and container notes
 
 A frankencard setup walkthrough confirms `nvidia-driver-550` on Ubuntu 22.04 with the 20G mod and documents the community vLLM image `dengcao/vllm-openai:v0.9.2`. We run driver 610.57. Source: [cnblogs walkthrough](https://www.cnblogs.com/yisheng163/p/20408329).
+
+## Fork landscape and the fastest-build verdict
+
+Swept 2026-09-22 evening. Sources: [ikawrakow/ik_llama.cpp](https://github.com/ikawrakow/ik_llama.cpp), [Indras-Mirror/llama.cpp-turboq-mtp qwen35 branch](https://github.com/Indras-Mirror/llama.cpp-turboq-mtp/tree/qwen35), [sudoingX/qwen38-mtp](https://github.com/sudoingX/qwen38-mtp), [PrismML-Eng/llama.cpp](https://github.com/PrismML-Eng/llama.cpp), [RightNow-AI/bonsai-turbo](https://github.com/RightNow-AI/bonsai-turbo), [jarkevithwlad/turboquant-prismml-cuda](https://github.com/jarkevithwlad/turboquant-prismml-cuda), [stew675/llama-cpp-rdna-boosts](https://github.com/stew675/llama-cpp-rdna-boosts). The RDNA fork targets AMD and is out of scope for sm86.
+
+Ranked on this exact box. Every number is measured here unless noted.
+
+| Rank | Build and config | Decode |
+|---|---|---|
+| 1 | Upstream b10809, our production flags | 72.68 fresh |
+| 2 | ik_llama.cpp, IQ4_KS pack, q8_0 K and f16 V, MTP n-max 4 | 71.63 at bench context |
+| 3 | ik_llama.cpp, IQ4_KS pack, MMQ forced | 70.51 |
+
+The turboq qwen35 SWA build is untested on a 3080. Its published numbers are a 4090 at roughly 70 t/s with SWA at 62K against 18 to 20 dense. The prismml weight-read fix targets sm86 but carries no Qwen3.8 number. The bonsai-turbo and turboquant numbers are H100 or ternary-model results and do not transfer.
+
+Still untried for this card.
+
+1. The turboq qwen35 SWA build, attempt F.
+2. The TBQ4 and TBQ3 fused KV path from the same fork.
+3. The prismml weight-read thread fix on a dense IQ4_XS model.
+4. Unloth Dynamic 3.0, quimmedes Q4-XYZ, AtomicChat and turboquant packs at 20GB.
+5. Upstream CUDA patches landed after build 10809. The community table shows builds to at least 10873 and rule 6 measured plus 10 to 15 percent from newer builds alone.
+
+The community sweep table still has no 20GB row. A pull request with our h45 pair would be the first.
