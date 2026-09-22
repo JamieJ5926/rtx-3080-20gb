@@ -1,0 +1,5 @@
+run 1: completion_tokens=600 prompt_tokens=69 elapsed=51.63s tok_s=11.62
+run 2: completion_tokens=600 prompt_tokens=69 elapsed=49.09s tok_s=12.22
+run 3: completion_tokens=600 prompt_tokens=69 elapsed=49.02s tok_s=12.24
+median_decode_tok_s=12.22 n=3 runs=[11.62, 12.22, 12.24]
+prefill10k: prompt_tokens=8853 completion_tokens=8 elapsed=30.59s prefill_tok_s=289.4
