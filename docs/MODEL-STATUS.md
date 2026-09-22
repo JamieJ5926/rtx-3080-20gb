@@ -7,6 +7,8 @@ Single box, one RTX 3080 20 GB. Metric: median generate tok/s, 600 tokens, tempe
 | Stack | tok/s | Notes |
 |---|---|---|
 | **llama-server orcarouter uncensored IQ4_XS + draft-mtp + `-ub 256` at `-c 98304`** | **72.68** | current best (h45, 2026-09-22), the production config. draft 404/580 accepted; default `-ub 512` crashes CUDA OOM in the speculative fattn alloc at this context |
+| llama-server Qwen3.8-27B-UD-IQ4_XS (base Unsloth) + draft-mtp + `-ub 256` at `-c 98304` | 66.15 | h47, 2026-09-22. draft 400/597; base loses to the uncensored repack at production shape (-9%), inverting the h31 bench-ctx ordering |
+| llama-server Qwen3.8-27B-MTP-IQ4_KS (base ubergarm) | n/a | h46, 2026-09-22. Upstream llama.cpp refuses the pack, `blk.0.attn_qkv.weight` ggml type 144 is ik_llama.cpp-only, so the h42 71.63 figure needs the ik engine |
 | ik_llama.cpp IQ4_KS + MTP n-max 4 + GGML_CUDA_FORCE_MMQ=1 + K q8_0 | 71.63 | prior best (h42, 2026-09-20), bench ctx 4096. `ubergarm/Qwen3.8-27B-MTP-IQ4_KS.gguf` 15.75 GiB (PPL 6.9938 vs BF16 6.9540), `-ngl 99 -c 4096 -fa on -ctk q8_0 --spec-type mtp:n_max=4,p_min=0.0` |
 | ik_llama.cpp IQ4_KS + MTP n-max 4 + GGML_CUDA_FORCE_MMQ=1 | 70.51 | prior best, superseded by K-only KV quant |
 | ik_llama.cpp IQ4_KS + MTP n-max 4 | 69.34 | kept before MMQ arm |

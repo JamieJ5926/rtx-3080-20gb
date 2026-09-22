@@ -9,6 +9,7 @@ llama-server + `bartowski orcarouter-uncensored IQ4_XS` + `--spec-type draft-mtp
 | Model | tok/s | Role |
 |---|---|---|
 | llama-server uncensored IQ4_XS + draft-mtp + ub 256 | **72.68** | daily driver, 98304 ctx (h45) |
+| llama-server base UD-IQ4_XS + draft-mtp + ub 256 | 66.15 | base model, production shape (h47) |
 | ik IQ4_KS MTP n4 + MMQ | 70.51 | censored bench best (h29) |
 | Bonsai PQ2_0 ternary | 64.1 | co-residency (2× instance), ctx 131072 |
 | orcarouter uncensored IQ4_XS | 60.2 | uncensored option, quality stock-equal |
