@@ -118,3 +118,20 @@ Read from the per-card sweep files of qwen38-mtp on 2026-09-22. What transfers t
 Two corrections to earlier notes. The rebuild expectation shrinks. Rule 6 measured plus 10 to 15 percent on a 5090, but the same test on a 5060 Ti and a 3090 after build b10472 gave plus 1.5 percent at most. Attempt E is now low value. And the MTP arm costs roughly 580 MiB with a hard residency cliff, which is what caps our 98304 window rather than KV arithmetic. Any KV shrink buys both depth speed and ceiling.
 
 The compound hypothesis for the next build. TBQ4 or TBQ3 KV frees enough VRAM that n-max 4 may stop crashing at 98k, and every card class where n4 fits reports it beats n3.
+
+## HyperQwen slim verdict, 2026-09-23
+
+The slimming investigation is closed with a full budget and a fit verdict. Source: the HyperQwenSlimFeasibility report and the h49 to h53 receipts in this repo.
+
+| Question | Verdict |
+|---|---|
+| Fit at 6k to 24k contexts | Plausible. The optimistic projection leaves 1.13 GiB at 24k and 2.17 GiB at 6k |
+| Fit at the 91k agent depth | Ruled out. The fp8 cache at 91k is about 5.27 GiB and the same projection exceeds free VRAM by 2.75 GiB |
+| Speed at short context | Plausible 80 to 120 t/s class against our 76.41, unverified |
+| Speed at 91k | Not credible against our 54.40 with the measured fp8 geometry |
+
+The cheap cuts are already spent on the leminkozey checkpoint. Embeddings and output head are already INT8, vision is already excluded, and the 209 MB quantized drafter was already tested and failed. The real blocker is the draft loader. It rereads the full checkpoint and runs the Marlin repack before serving, and that transient 1.19 GiB request is what kills MTP at load with 1.12 GiB free.
+
+Ranked cuts for any future rebuild. First, the fork loader change, load only the draft tensors and bind shared target parameters before any repack. Second, an INT4 GPTQ output head for about 0.6 GB. Third, the trimmed 40960-token draft vocabulary. Config-only cuts such as KV pins, vision exclusion and eager mode do not touch the load-time failure and are already active or already falsified. The staged repack knob keeps a 1.2 GiB buffer and defaults off on sm86, so it is not the lever it looked like.
+
+Decision. Parked. HyperQwen is a short-context speed machine and this program serves 90k-deep agent sessions. The loader fix is the only fork work worth reviving, and the exact first experiment is recorded in the report.
