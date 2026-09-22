@@ -1,0 +1,65 @@
+== environment
+  PASS  python: /home/jamie/qwen-serving/venv/bin/python
+  PASS  vllm 0.28.0
+  PASS  vllm package at /home/jamie/qwen-serving/venv/lib/python3.12/site-packages/vllm
+  PASS  GPU: NVIDIA GeForce RTX 3080, 19.6 GiB, sm86, torch 2.13.0+cu130
+  PASS  power limit 320.00 W (README numbers are at 250 W)
+  PASS  python module triton
+  PASS  python module compressed_tensors
+  PASS  flashinfer usable by vLLM (nvcc or flashinfer-cubin present)
+== vLLM patches (order: patches/series)
+  PASS  patches/series lists all 39 patches
+  PASS  qwen3_5-embed-quant.patch applied (content check; hunks overlap another patch)
+  PASS  marlin-int8-layer-select.patch applied (content check; hunks overlap another patch)
+  PASS  marlin-int8-negative-scales.patch applied
+  PASS  qwen3_5-mtp-draft-vocab.patch applied
+  PASS  vllm-pr50021-gdn-spec-bounds.patch applied
+  PASS  sampler-small-topk-fast-softmax.patch applied (content check; hunks overlap another patch)
+  PASS  spec-decode-attn.patch applied (content check; hunks overlap another patch)
+  PASS  speed-knobs-envs.patch applied (content check; hunks overlap another patch)
+  PASS  dflash2-backport.patch retired (DFlash2 is native in vLLM 0.28.0)
+  PASS  hybrid-kv-groups-v2-cudagraph.patch applied (content check; hunks overlap another patch)
+  PASS  dflash2-lookup-drafting.patch applied (content check; hunks overlap another patch)
+  PASS  hybrid-sw-block-promote.patch applied
+  PASS  spec-decode-int8-kv.patch applied (content check; hunks overlap another patch)
+  PASS  xgrammar-spec-terminated.patch applied
+  PASS  vision-tower-cpu-offload.patch applied (content check; hunks overlap another patch)
+  PASS  int4-kv-per-token-head.patch applied
+  PASS  marlin-repack-staged-sm80.patch applied (content check; hunks overlap another patch)
+  PASS  offload-dflash-eagle-groups.patch applied (content check; hunks overlap another patch)
+  PASS  dflash2-ngram-chains.patch applied (content check; hunks overlap another patch)
+  PASS  offload-wsl2-devptr.patch applied
+  PASS  spec-decode-int4-kv-mq3d.patch applied (content check; hunks overlap another patch)
+  PASS  dflash2-prewarm.patch applied
+  PASS  marlin-tune-table.patch applied
+  PASS  prefill-attn-int8.patch applied (content check; hunks overlap another patch)
+  PASS  spec-sampler-prewarm.patch applied
+  PASS  mamba-align-checkpoint-order.patch applied
+  PASS  spec-decode-scratch-token-units.patch applied (superseded by spec-decode-scratch-within-budget.patch, which is applied)
+  PASS  mamba-chunked-prefill-align.patch applied
+  PASS  spec-decode-scratch-within-budget.patch applied
+  PASS  dflash2-z-adaptive-emitted.patch applied
+  PASS  dspark-draft-quant-config.patch applied
+  PASS  vllm-pr54282-draft-gumbel-salt.patch applied
+  PASS  mamba-align-retire-null-gaps.patch applied
+  PASS  offload-mtp-serve.patch applied
+  PASS  engine-completion-log.patch applied
+  PASS  engine-stall-sentinel.patch applied
+  PASS  sse-keep-alive.patch applied
+  PASS  int4-mq3d-envs.patch applied (content check; hunks overlap another patch)
+  PASS  triton-spec-attn-fp8-kv.patch applied
+  PASS  int8 layer-select env vars registered in envs.py (live registry)
+== KVarN (optional, kvarn/)
+  WARN  KVarN not installed (optional; bash kvarn/install.sh for 262k context)
+== model at /home/jamie/qwen-serving/models/Qwen3.8-27B-W4A16-AutoRound
+  FAIL  model not found (README Setup: hf download)
+== single-user fast variant (optional)
+  WARN  no models/Qwen3.8-27B-W4A16-AutoRound-fast (venv/bin/python prepare/fetch_fast_variant.py; single-user mode is ~15% slower without it)
+== tokenizers (every dir we serve --model from)
+== single-user DFlash2 drafter (optional, SPEC=dflash2)
+  WARN  no DFlash2 drafter (venv/bin/python prepare/fetch_dflash2.py; SPEC=dflash2 single-user mode needs it)
+== keys / units
+  WARN  no API key — the server will accept any request, and it listens on 0.0.0.0. Fine behind a firewall; otherwise: openssl rand -hex 24 > api_key.txt
+  WARN  qwen-serving unit not active (fine if you launch the scripts by hand)
+
+verify: 1 FAILURE(S)

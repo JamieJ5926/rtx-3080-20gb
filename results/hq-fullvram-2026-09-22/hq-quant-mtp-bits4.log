@@ -1,0 +1,10 @@
+mtp linears live in model_extra_tensors.safetensors, quantizing to int4 g128
+  mtp.fc: (5120, 10240) round-trip rel error 0.1274
+  mtp.layers.0.mlp.down_proj: (5120, 17408) round-trip rel error 0.1339
+  mtp.layers.0.mlp.gate_proj: (17408, 5120) round-trip rel error 0.1201
+  mtp.layers.0.mlp.up_proj: (17408, 5120) round-trip rel error 0.1195
+  mtp.layers.0.self_attn.q_proj: (12288, 5120) round-trip rel error 0.1236
+  mtp.layers.0.self_attn.k_proj: (1024, 5120) round-trip rel error 0.1396
+  mtp.layers.0.self_attn.v_proj: (1024, 5120) round-trip rel error 0.1258
+  mtp.layers.0.self_attn.o_proj: (5120, 6144) round-trip rel error 0.1379
+done
