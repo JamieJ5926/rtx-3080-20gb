@@ -1,0 +1,2 @@
+#!/bin/bash
+exec /usr/bin/llama-server -m /home/jamie/models/orcarouter-uncensored-IQ4_XS.gguf -ngl 99 -c 98304 --parallel 1 -ctk q8_0 -ctv q8_0 -fa on -ub 256 --spec-type draft-mtp --jinja --port 8083 --host 0.0.0.0
