@@ -1,0 +1,89 @@
+===BASELINE FRESH===
+# HYGIENE: used=19888.0 total=20480.0 desktop=0 resident=True
+run 1: prompt_tokens=69 completion_tokens=600 elapsed=10.12s decode=71.20 prefill=243.7 draft=400/594
+run 2: prompt_tokens=69 completion_tokens=600 elapsed=8.78s decode=71.26 prefill=328.9 draft=401/591
+run 3: prompt_tokens=69 completion_tokens=600 elapsed=8.66s decode=70.87 prefill=328.9 draft=401/591
+median_decode_tok_s=71.20 median_prefill_tok_s=328.9 median_prompt_tokens=69 n=3 runs=[71.2, 71.26, 70.87]
+timings={"cache_n": 0, "prompt_n": 69, "prompt_ms": 209.761, "prompt_per_token_ms": 3.040014492753623, "prompt_per_second": 328.94580022025065, "predicted_n": 600, "predicted_ms": 8451.543, "predicted_per_token_ms": 14.109420701168613, "predicted_per_second": 70.874632005067, "draft_n": 591, "draft_n_accepted": 401}
+===BASELINE 33K===
+# HYGIENE: used=19888.0 total=20480.0 desktop=0 resident=True
+run 1: prompt_tokens=33167 completion_tokens=600 elapsed=46.21s decode=49.21 prefill=978.7 draft=364/701
+run 2: prompt_tokens=33167 completion_tokens=600 elapsed=46.92s decode=48.78 prefill=960.7 draft=364/701
+run 3: prompt_tokens=33167 completion_tokens=600 elapsed=47.03s decode=48.78 prefill=957.8 draft=364/701
+median_decode_tok_s=48.78 median_prefill_tok_s=960.7 median_prompt_tokens=33167 n=3 runs=[49.21, 48.78, 48.78]
+timings={"cache_n": 0, "prompt_n": 33167, "prompt_ms": 34627.91, "prompt_per_token_ms": 1.0440470950040703, "prompt_per_second": 957.8111991165507, "predicted_n": 600, "predicted_ms": 12279.295, "predicted_per_token_ms": 20.49965776293823, "predicted_per_second": 48.78130218387945, "draft_n": 701, "draft_n_accepted": 364}
+===ATTEMPT A FRESH===
+# HYGIENE: used=19854.0 total=20480.0 desktop=0 resident=True
+run 1: prompt_tokens=69 completion_tokens=600 elapsed=9.03s decode=70.23 prefill=153.0 draft=400/594
+run 2: prompt_tokens=69 completion_tokens=600 elapsed=8.88s decode=70.56 prefill=329.7 draft=401/591
+run 3: prompt_tokens=69 completion_tokens=600 elapsed=8.76s decode=70.15 prefill=318.6 draft=401/591
+median_decode_tok_s=70.23 median_prefill_tok_s=318.6 median_prompt_tokens=69 n=3 runs=[70.23, 70.56, 70.15]
+timings={"cache_n": 0, "prompt_n": 69, "prompt_ms": 216.549, "prompt_per_token_ms": 3.138391304347826, "prompt_per_second": 318.63458154967236, "predicted_n": 600, "predicted_ms": 8538.558, "predicted_per_token_ms": 14.254687813021704, "predicted_per_second": 70.1523606210791, "draft_n": 591, "draft_n_accepted": 401}
+===ATTEMPT A 33K===
+# HYGIENE: used=19886.0 total=20480.0 desktop=0 resident=True
+run 1: prompt_tokens=33167 completion_tokens=600 elapsed=46.48s decode=48.81 prefill=973.8 draft=364/701
+run 2: prompt_tokens=33167 completion_tokens=600 elapsed=46.72s decode=48.70 prefill=967.1 draft=364/701
+run 3: prompt_tokens=33167 completion_tokens=600 elapsed=46.73s decode=48.83 prefill=966.4 draft=364/701
+median_decode_tok_s=48.81 median_prefill_tok_s=967.1 median_prompt_tokens=33167 n=3 runs=[48.81, 48.7, 48.83]
+timings={"cache_n": 0, "prompt_n": 33167, "prompt_ms": 34320.818, "prompt_per_token_ms": 1.034788132782585, "prompt_per_second": 966.3813956881796, "predicted_n": 600, "predicted_ms": 12267.681, "predicted_per_token_ms": 20.480268781302172, "predicted_per_second": 48.827484183848604, "draft_n": 701, "draft_n_accepted": 364}
+===ATTEMPT B1 FRESH===
+# HYGIENE: used=19704.0 total=20480.0 desktop=0 resident=True
+run 1: prompt_tokens=69 completion_tokens=600 elapsed=10.39s decode=61.56 prefill=106.9 draft=347/503
+run 2: prompt_tokens=69 completion_tokens=600 elapsed=12.12s decode=62.49 prefill=260.6 draft=347/503
+run 3: prompt_tokens=69 completion_tokens=600 elapsed=9.89s decode=62.18 prefill=274.7 draft=347/503
+median_decode_tok_s=62.18 median_prefill_tok_s=260.6 median_prompt_tokens=69 n=3 runs=[61.56, 62.49, 62.18]
+timings={"cache_n": 0, "prompt_n": 69, "prompt_ms": 251.224, "prompt_per_token_ms": 3.640927536231884, "prompt_per_second": 274.65528771136513, "predicted_n": 600, "predicted_ms": 9633.18, "predicted_per_token_ms": 16.082103505843072, "predicted_per_second": 62.180920526762705, "draft_n": 503, "draft_n_accepted": 347}
+===ATTEMPT B1 33K===
+# HYGIENE: used=19734.0 total=20480.0 desktop=0 resident=True
+run 1: prompt_tokens=33167 completion_tokens=600 elapsed=47.38s decode=47.25 prefill=959.7 draft=329/538
+run 2: prompt_tokens=33167 completion_tokens=600 elapsed=46.74s decode=49.39 prefill=962.3 draft=341/514
+run 3: prompt_tokens=33167 completion_tokens=600 elapsed=47.36s decode=46.88 prefill=962.5 draft=327/542
+median_decode_tok_s=47.25 median_prefill_tok_s=962.3 median_prompt_tokens=33167 n=3 runs=[47.25, 49.39, 46.88]
+timings={"cache_n": 0, "prompt_n": 33167, "prompt_ms": 34459.047, "prompt_per_token_ms": 1.0389557994392016, "prompt_per_second": 962.5048539502558, "predicted_n": 600, "predicted_ms": 12777.041, "predicted_per_token_ms": 21.330619365609348, "predicted_per_second": 46.88096406671936, "draft_n": 542, "draft_n_accepted": 327}
+===ATTEMPT B3 FRESH===
+# HYGIENE: used=19854.0 total=20480.0 desktop=0 resident=True
+run 1: prompt_tokens=69 completion_tokens=600 elapsed=10.94s decode=56.88 prefill=173.6 draft=331/415
+run 2: prompt_tokens=69 completion_tokens=600 elapsed=10.53s decode=59.47 prefill=274.2 draft=343/416
+run 3: prompt_tokens=69 completion_tokens=600 elapsed=10.74s decode=58.58 prefill=271.9 draft=337/409
+median_decode_tok_s=58.58 median_prefill_tok_s=271.9 median_prompt_tokens=69 n=3 runs=[56.88, 59.47, 58.58]
+timings={"cache_n": 0, "prompt_n": 69, "prompt_ms": 253.755, "prompt_per_token_ms": 3.677608695652174, "prompt_per_second": 271.91582431873263, "predicted_n": 600, "predicted_ms": 10224.632, "predicted_per_token_ms": 17.069502504173624, "predicted_per_second": 58.58401554207526, "draft_n": 409, "draft_n_accepted": 337}
+===ATTEMPT B3 33K===
+# HYGIENE: used=19886.0 total=20480.0 desktop=0 resident=True
+run 1: prompt_tokens=33167 completion_tokens=600 elapsed=48.75s decode=42.77 prefill=966.5 draft=296/395
+run 2: prompt_tokens=33167 completion_tokens=600 elapsed=48.09s decode=45.33 prefill=955.1 draft=319/419
+run 3: prompt_tokens=33167 completion_tokens=600 elapsed=48.66s decode=43.50 prefill=954.3 draft=303/401
+median_decode_tok_s=43.50 median_prefill_tok_s=955.1 median_prompt_tokens=33167 n=3 runs=[42.77, 45.33, 43.5]
+timings={"cache_n": 0, "prompt_n": 33167, "prompt_ms": 34753.929, "prompt_per_token_ms": 1.0478466246570386, "prompt_per_second": 954.338141163838, "predicted_n": 600, "predicted_ms": 13771.589, "predicted_per_token_ms": 22.990966611018365, "predicted_per_second": 43.49534392872167, "draft_n": 401, "draft_n_accepted": 303}
+===ATTEMPT C FRESH===
+# HYGIENE: used=18318.0 total=20480.0 desktop=0 resident=True
+run 1: prompt_tokens=69 completion_tokens=600 elapsed=10.22s decode=61.14 prefill=166.9 draft=372/681
+run 2: prompt_tokens=69 completion_tokens=600 elapsed=10.12s decode=61.40 prefill=283.3 draft=373/678
+run 3: prompt_tokens=69 completion_tokens=600 elapsed=10.05s decode=61.09 prefill=281.9 draft=373/678
+median_decode_tok_s=61.14 median_prefill_tok_s=281.9 median_prompt_tokens=69 n=3 runs=[61.14, 61.4, 61.09]
+timings={"cache_n": 0, "prompt_n": 69, "prompt_ms": 244.805, "prompt_per_token_ms": 3.547898550724638, "prompt_per_second": 281.85698821511, "predicted_n": 600, "predicted_ms": 9805.059, "predicted_per_token_ms": 16.369046744574288, "predicted_per_second": 61.09091235453045, "draft_n": 678, "draft_n_accepted": 373}
+===ATTEMPT C 33K===
+# HYGIENE: used=18348.0 total=20480.0 desktop=0 resident=True
+run 1: prompt_tokens=33167 completion_tokens=600 elapsed=46.33s decode=50.87 prefill=964.0 draft=376/667
+run 2: prompt_tokens=33167 completion_tokens=600 elapsed=46.39s decode=51.49 prefill=958.1 draft=379/658
+run 3: prompt_tokens=33167 completion_tokens=600 elapsed=46.34s decode=51.58 prefill=958.0 draft=379/658
+median_decode_tok_s=51.49 median_prefill_tok_s=958.1 median_prompt_tokens=33167 n=3 runs=[50.87, 51.49, 51.58]
+timings={"cache_n": 0, "prompt_n": 33167, "prompt_ms": 34622.851, "prompt_per_token_ms": 1.04389456387373, "prompt_per_second": 957.951151971858, "predicted_n": 600, "predicted_ms": 11612.321, "predicted_per_token_ms": 19.386178631051752, "predicted_per_second": 51.583141733680975, "draft_n": 658, "draft_n_accepted": 379}
+===ATTEMPT C 147K FRESH===
+# HYGIENE: used=19614.0 total=20480.0 desktop=0 resident=True
+run 1: prompt_tokens=69 completion_tokens=600 elapsed=10.17s decode=61.01 prefill=205.4 draft=372/681
+run 2: prompt_tokens=69 completion_tokens=600 elapsed=10.18s decode=61.31 prefill=319.8 draft=373/678
+run 3: prompt_tokens=69 completion_tokens=600 elapsed=10.05s decode=60.97 prefill=320.3 draft=373/678
+median_decode_tok_s=61.01 median_prefill_tok_s=319.8 median_prompt_tokens=69 n=3 runs=[61.01, 61.31, 60.97]
+timings={"cache_n": 0, "prompt_n": 69, "prompt_ms": 215.427, "prompt_per_token_ms": 3.1221304347826084, "prompt_per_second": 320.2941135512262, "predicted_n": 600, "predicted_ms": 9825.149, "predicted_per_token_ms": 16.402585976627712, "predicted_per_second": 60.965996546210135, "draft_n": 678, "draft_n_accepted": 373}
+===ATTEMPT C 147K 33K===
+# HYGIENE: used=19644.0 total=20480.0 desktop=0 resident=True
+run 1: prompt_tokens=33167 completion_tokens=600 elapsed=46.33s decode=51.00 prefill=963.3 draft=376/667
+median_decode_tok_s=51.00 median_prefill_tok_s=963.3 median_prompt_tokens=33167 n=1 runs=[51.0]
+timings={"cache_n": 0, "prompt_n": 33167, "prompt_ms": 34430.164, "prompt_per_token_ms": 1.0380849639702112, "prompt_per_second": 963.3122862847822, "predicted_n": 600, "predicted_ms": 11744.13, "predicted_per_token_ms": 19.606227045075123, "predicted_per_second": 51.00420380223993, "draft_n": 667, "draft_n_accepted": 376}
+===PRODUCTION RESTORE CONFIRM===
+# HYGIENE: used=19854.0 total=20480.0 desktop=0 resident=True
+run 1: prompt_tokens=69 completion_tokens=600 elapsed=8.91s decode=70.49 prefill=174.9 draft=400/594
+run 2: prompt_tokens=69 completion_tokens=600 elapsed=8.81s decode=70.93 prefill=283.3 draft=401/591
+run 3: prompt_tokens=69 completion_tokens=600 elapsed=8.75s decode=70.47 prefill=282.1 draft=401/591
+median_decode_tok_s=70.49 median_prefill_tok_s=282.1 median_prompt_tokens=69 n=3 runs=[70.49, 70.93, 70.47]
+timings={"cache_n": 0, "prompt_n": 69, "prompt_ms": 244.551, "prompt_per_token_ms": 3.5442173913043478, "prompt_per_second": 282.1497356379651, "predicted_n": 600, "predicted_ms": 8500.373, "predicted_per_token_ms": 14.190939899833054, "predicted_per_second": 70.46749595576571, "draft_n": 591, "draft_n_accepted": 401}

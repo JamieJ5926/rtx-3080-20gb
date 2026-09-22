@@ -1,0 +1,18 @@
+--- 16701 fill ---
+HYGIENE: VRAM used=19886/20480 MiB desktop_mem=0 MiB temp=59C resident=True
+run 1: prompt_tokens=16615 completion_tokens=600 elapsed=25.95s decode=59.18 prefill=1055.7 draft=387/634
+median_decode_tok_s=59.18 median_prefill_tok_s=1055.7 median_prompt_tokens=16615 n=1 runs=[59.18]
+timings={"cache_n": 0, "prompt_n": 16615, "prompt_ms": 15738.323, "prompt_per_token_ms": 0.9472358110141439, "prompt_per_second": 1055.7033300180713, "predicted_n": 600, "predicted_ms": 10121.85, "predicted_per_token_ms": 16.897913188647745, "predicted_per_second": 59.17890504206247, "draft_n": 634, "draft_n_accepted": 387}
+wrote /home/jamie/h56-curve-16k.txt
+--- 66685 fill ---
+HYGIENE: VRAM used=19886/20480 MiB desktop_mem=0 MiB temp=73C resident=True
+run 1: prompt_tokens=66287 completion_tokens=600 elapsed=93.60s decode=41.25 prefill=840.9 draft=363/706
+median_decode_tok_s=41.25 median_prefill_tok_s=840.9 median_prompt_tokens=66287 n=1 runs=[41.25]
+timings={"cache_n": 0, "prompt_n": 66287, "prompt_ms": 78824.641, "prompt_per_token_ms": 1.1891417774224207, "prompt_per_second": 840.9426184383129, "predicted_n": 600, "predicted_ms": 14522.14, "predicted_per_token_ms": 24.24397328881469, "predicted_per_second": 41.24736436916322, "draft_n": 706, "draft_n_accepted": 363}
+wrote /home/jamie/h56-curve-66k.txt
+--- 91655 fill ---
+HYGIENE: VRAM used=19886/20480 MiB desktop_mem=0 MiB temp=78C resident=True
+run 1: prompt_tokens=91103 completion_tokens=600 elapsed=134.71s decode=38.97 prefill=765.5 draft=373/675
+median_decode_tok_s=38.97 median_prefill_tok_s=765.5 median_prompt_tokens=91103 n=1 runs=[38.97]
+timings={"cache_n": 0, "prompt_n": 91103, "prompt_ms": 119008.341, "prompt_per_token_ms": 1.3063054015784332, "prompt_per_second": 765.517771565272, "predicted_n": 600, "predicted_ms": 15370.325, "predicted_per_token_ms": 25.659974958263774, "predicted_per_second": 38.97119937281743, "draft_n": 675, "draft_n_accepted": 373}
+wrote /home/jamie/h56-curve-91k.txt
