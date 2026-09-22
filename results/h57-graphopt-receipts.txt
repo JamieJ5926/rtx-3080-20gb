@@ -1,0 +1,28 @@
+===H57 GRAPHOPT FRESH (GGML_CUDA_GRAPH_OPT=1 live)===
+# Flag verified live: GGML_CUDA_GRAPH_OPT=1 in /proc/<server>/environ; cmdline otherwise identical to baseline.
+# HYGIENE: used=19854.0 total=20480.0 desktop=0 resident=True
+run 1: prompt_tokens=69 completion_tokens=600 elapsed=8.84s decode=71.04 prefill=174.2 draft=400/594
+run 2: prompt_tokens=69 completion_tokens=600 elapsed=8.72s decode=71.65 prefill=283.1 draft=401/591
+run 3: prompt_tokens=69 completion_tokens=600 elapsed=8.64s decode=71.38 prefill=286.9 draft=401/591
+median_decode_tok_s=71.38 median_prefill_tok_s=283.1 median_prompt_tokens=69 n=3 runs=[71.04, 71.65, 71.38]
+timings={"cache_n": 0, "prompt_n": 69, "prompt_ms": 240.479, "prompt_per_token_ms": 3.4852028985507246, "prompt_per_second": 286.92734084888906, "predicted_n": 600, "predicted_ms": 8391.473, "predicted_per_token_ms": 14.009136894824708, "predicted_per_second": 71.38198502217668, "draft_n": 591, "draft_n_accepted": 401}
+===H57 GRAPHOPT 33K (GGML_CUDA_GRAPH_OPT=1 live)===
+# HYGIENE: used=19886.0 total=20480.0 desktop=0 resident=True
+run 1: prompt_tokens=33167 completion_tokens=600 elapsed=46.02s decode=49.05 prefill=985.6 draft=364/701
+run 2: prompt_tokens=33167 completion_tokens=600 elapsed=46.86s decode=48.69 prefill=963.3 draft=364/701
+run 3: prompt_tokens=33167 completion_tokens=600 elapsed=47.15s decode=48.55 prefill=956.0 draft=364/701
+median_decode_tok_s=48.69 median_prefill_tok_s=963.3 median_prompt_tokens=33167 n=3 runs=[49.05, 48.69, 48.55]
+timings={"cache_n": 0, "prompt_n": 33167, "prompt_ms": 34695.132, "prompt_per_token_ms": 1.0460738686043356, "prompt_per_second": 955.9554349007809, "predicted_n": 600, "predicted_ms": 12336.623, "predicted_per_token_ms": 20.595363939899833, "predicted_per_second": 48.554616607802636, "draft_n": 701, "draft_n_accepted": 364}
+===H57 PRODUCTION RESTORE CONFIRM (flag removed, baseline flags)===
+# Launcher diff vs pre-h57 backup: IDENTICAL. Server env: NO_GRAPHOPT_FLAG. Cmdline: baseline flags.
+# HYGIENE: used=19854.0 total=20480.0 desktop=0 resident=True
+run 1: prompt_tokens=69 completion_tokens=600 elapsed=8.86s decode=70.96 prefill=171.2 draft=400/594
+run 2: prompt_tokens=69 completion_tokens=600 elapsed=8.78s decode=71.14 prefill=285.1 draft=401/591
+run 3: prompt_tokens=69 completion_tokens=600 elapsed=8.68s decode=71.03 prefill=283.3 draft=401/591
+median_decode_tok_s=71.03 median_prefill_tok_s=283.3 median_prompt_tokens=69 n=3 runs=[70.96, 71.14, 71.03]
+timings={"cache_n": 0, "prompt_n": 69, "prompt_ms": 243.541, "prompt_per_token_ms": 3.5295797101449273, "prompt_per_second": 283.3198516882168, "predicted_n": 600, "predicted_ms": 8432.926, "predicted_per_token_ms": 14.078340567612686, "predicted_per_second": 71.031098814338, "draft_n": 591, "draft_n_accepted": 401}
+===WEIGHT RESIDENCY===
+# Fresh: 19854/20480 MiB, server proc 19246 MiB, desktop_mem=0, resident=True. 33k: 19886/20480 MiB, resident=True. Restore: 19854/20480 MiB, resident=True.
+===OPERATIONAL NOTES===
+# First launcher form `env GGML_CUDA_GRAPH_OPT=1 exec ...` failed: watchdog log `env: exec: No such file or directory` x2 (exec is a shell builtin). Fixed to `export GGML_CUDA_GRAPH_OPT=1` + `exec ...`; syntax ok; server booted; /health ok.
+# Watchdog stop hung once in final-sigterm and SIGKILLed the server (unit went failed/timeout); reset-failed + start recovered cleanly. No other flag changes.
