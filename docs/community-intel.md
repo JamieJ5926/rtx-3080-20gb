@@ -82,10 +82,12 @@ Ranked on this exact box. Every number is measured here unless noted.
 
 | Rank | Build and config | Decode |
 |---|---|---|
-| 1 | Upstream b10809, our production flags | 72.68 fresh |
-| 2 | ik_llama.cpp, IQ4_KS pack, q8_0 K and f16 V, MTP n-max 4 | 71.63 at bench context |
-| 3 | ik_llama.cpp, IQ4_KS pack, MMQ forced | 70.51 |
+| 1 | Turboq qwen35 build aaa66a5, our production flags, q8_0 KV, MTP n-max 3 | 74.00 fresh, 50.42 at 33k, 40.81 at 91k (h59) |
+| 2 | Upstream master a60f9ae, same flags | 71.92 fresh (h59-e) |
+| 3 | Upstream b10809, same flags | 70.49 fresh (h59 baseline) |
+| 4 | ik_llama.cpp, IQ4_KS pack, q8_0 K and f16 V, MTP n-max 4 | 71.63 at bench context |
 
+Engine swap results from the h59 ladder. TBQ3 and TBQ4 KV lost 20 and 12 percent at fresh on this card despite halving KV traffic, and both trailed at depth. The compound hypothesis was falsified in halves. TBQ4 freed enough VRAM for n-max 4 to stop SIGSEGVing at 98k, but n-max 4 then lost to n-max 3 by 12 percent fresh with lower acceptance. Dynamic 3.0 Q4_K_XL lost 33 percent at fresh because its extra weight bytes per token lower the bandwidth ceiling. The untested depth extreme remains TBQ KV at 91k and beyond, where its theoretical advantage is largest.
 The turboq qwen35 SWA build is untested on a 3080. Its published numbers are a 4090 at roughly 70 t/s with SWA at 62K against 18 to 20 dense. The prismml weight-read fix targets sm86 but carries no Qwen3.8 number. The bonsai-turbo and turboquant numbers are H100 or ternary-model results and do not transfer.
 
 Still untried for this card.
