@@ -54,3 +54,22 @@ The qwen38-mtp sweep table has a 3080 10GB row at 45.1 to 64.4 t/s and no 20GB r
 | D | Kept wins combined | Hillclimb discipline |
 | E | Rebuild llama.cpp from current upstream, measure the floor | Rule 6 |
 | F | SWA hybrid build of the turboq fork | The table above |
+| A2 | `GGML_CUDA_GRAPH_OPT=1` for concurrent Q, K, V streams | CUDA discussion 17621 |
+
+## Second sweep, later on 2026-09-22
+
+### The concurrent-streams flag
+
+The upstream CUDA work in [discussion 17621](https://github.com/ggml-org/llama.cpp/discussions/17621) fuses token-generation kernels and runs the Q, K and V projections on concurrent CUDA streams. Kernel fusion is on by default. The concurrent streams need `GGML_CUDA_GRAPH_OPT=1` and work on single-GPU setups only, which matches this box. The same thread records a counter-example where the flag slowed token generation from 61.76 to 54.77 on an NVIDIA GB10. Sweep it and keep it only if the metric moves. Attempt A2.
+
+### The speed-of-light calculation
+
+The thread links `gguf_bandwidth.py`, a script that computes the theoretical tokens per second for any GGUF on any bandwidth figure. Run it for our model at 760 GB per second before claiming any build is fastest. It answers how much headroom exists above our 72.68 measured number.
+
+### The card-class anchor
+
+A Zhihu test measured the modded 3080 20G at 83 percent of an RTX 3090 24G in token generation speed, Ollama with Qwen3 in FP16 and Q4_K_M, at 70 percent of the rental price. Source: [Zhihu writeup](https://zhuanlan.zhihu.com/p/1968331561104564891), [syndicated summary](https://post.smzdm.com/p/a46m428x/). The summary is AI-generated, so treat the 83 percent figure as directional.
+
+### Driver and container notes
+
+A frankencard setup walkthrough confirms `nvidia-driver-550` on Ubuntu 22.04 with the 20G mod and documents the community vLLM image `dengcao/vllm-openai:v0.9.2`. We run driver 610.57. Source: [cnblogs walkthrough](https://www.cnblogs.com/yisheng163/p/20408329).
