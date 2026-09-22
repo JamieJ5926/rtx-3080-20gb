@@ -30,3 +30,24 @@ From the env and field sweep, 2026-09-23. These move to the top of the queue.
 ## Methodology overrides
 
 Five timed samples after a discarded warmup per rung, not three. Issue 39 shows a three-prompt median moving 15 percent where the five-run mean moved 1.6. Measure prefill and decode at every point. Run a fit gate before timed arms and record residency before and after. Reject a row on any crash, CPU fallback, missing draft counters or quality failure. Never classify a crash as noise.
+
+## Second field sweep additions
+
+From two r/LocalLLaMA and r/LocalLLM config threads, 2026-09-23. All untried on this card.
+
+1. **ngram-map-k4v stacking.** `--spec-type draft-mtp,ngram-map-k4v --spec-ngram-map-k4v-size-n 16 --spec-ngram-map-k4v-size-m 24 --spec-ngram-map-k4v-min-hits 1`. A different ngram variant than the ngram-mod we measured as noise. One user reports it as summarization tuned and recommends dropping it for agent use, so measure on both prompt classes.
+2. **Mixed KV types.** `-ctk q8_0 -ctv q5_1`. We have only tested symmetric pairs. One config runs this at 119k context.
+3. **q4_1 KV at depth.** One user runs 170k with Q4_1 KV on a 24GB card. Untried dtype, sits between q4_0 and q5_1 in the memory tables.
+4. **exllamav3 with tabbyAPI.** A whole engine class we have never run. Reported as steadier decode and prompt processing than llama.cpp at agent workloads, with `--draft-cache-mode Q4` for a quantized draft cache, which is exactly what our fork bug blocks, and `sysmem_kv_cache` eviction of old blocks to system RAM for subagent workloads. Rasekov runs 256k with Q8 KV at 4bpw.
+5. **NInfer-3090 fork.** Reported 57 t/s at 125k and one user reports poor KV accuracy on a coding agent, so it needs a quality gate before any speed claim.
+6. **ik fork Hadamard KV.** `-ctk q4_1 -ctv q4_1 -khad -vhad` on ik_llama.cpp. The Hadamard rotation family behind TBQ in a different fork, unmeasured here.
+7. **Agent behavior rungs, a new category.** Two users report Qwen3.8 overthinking and failing tool calls under default harness settings. The froggeric qwen3.8 chat template, `--reasoning-budget`, `--reasoning-preserve` and `chat-template-kwargs reasoning_effort` are all untested behavior levers and matter more than t/s for our agentic use.
+
+## Field-note additions, alexander-ollman qwen3.8-on-rtx3090
+
+From the 2x3090 field writeup, 2026-09-23. Its llama.cpp numbers are below ours, but three findings transfer directly.
+
+1. **fp8 KV is the quality-safe cache.** Their per-token-likelihood instrument finds fp8 indistinguishable from bf16 to 150K with 100 percent retrieval at 147K, and 4-bit cache "costs something real". This matches our recall failure with q4_0 past 150 to 183k. Run SWA8 with q8_0 KV as the quality-first profile and map its ceiling and recall. Expected window around 160k with exact recall, against our 196k with corruption past 150k.
+2. **Swift-Qwen3.8-27B swap.** The UkisAI fine-tune halves thinking tokens at equal answers, 37 and 37 on the problems where neither hit the ceiling, and cuts a 36-task coding set from 9.6 to 5.5 hours. For agentic use that is bigger than any t/s lever left. Requires a model download and our quality harness plus the compaction probe.
+3. **DFlash2 on the turboq fork.** We burned DFlash2 on the old upstream stack at 46.5 t/s. The fork carries dflash CUDA kernels and the writeup's 212 t/s row is DFlash2 at k=7. Single-consumer case is where DFlash2 wins per their concurrency caveat. Untested combination here.
+4. Their community patched vLLM reached 167.8 before DFlash2, from a smarter verify kernel, a 4-bit output head and a trimmed draft vocabulary, and it refuses checkpoints that do not match its assumptions. Same family as the HyperQwen patches we could not fit at 20GB. Record only.
