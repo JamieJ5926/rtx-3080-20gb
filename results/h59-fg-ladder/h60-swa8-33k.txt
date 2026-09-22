@@ -1,0 +1,6 @@
+# HYGIENE: used=18358.0 total=20480.0 desktop=0 resident=True
+run 1: prompt_tokens=33167 completion_tokens=600 elapsed=41.42s decode=65.10 prefill=1034.8 draft=401/592
+run 2: prompt_tokens=33167 completion_tokens=600 elapsed=42.20s decode=64.41 prefill=1013.0 draft=401/592
+run 3: prompt_tokens=33167 completion_tokens=600 elapsed=42.51s decode=64.27 prefill=1004.8 draft=401/592
+median_decode_tok_s=64.41 median_prefill_tok_s=1013.0 median_prompt_tokens=33167 n=3 runs=[65.1, 64.41, 64.27]
+timings={"cache_n": 0, "prompt_n": 33167, "prompt_ms": 33008.723, "prompt_per_token_ms": 0.9952278771067626, "prompt_per_second": 1004.7950052475524, "predicted_n": 600, "predicted_ms": 9336.278, "predicted_per_token_ms": 15.560463333333333, "predicted_per_second": 64.26543853985497, "draft_n": 592, "draft_n_accepted": 401}
