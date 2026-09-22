@@ -18,3 +18,15 @@ Accept a rung when fresh stays within 2 percent and a depth point improves past 
 ## Do not touch
 
 `LLAMA_ATTN_ROT_DISABLE`, wrong architecture. `GGML_CUDA_FORCE_MMQ=1` and `GGML_CUDA_GRAPH_OPT=1`, measured noise here. p-min as a speed lever, measured minus 10.8 percent. n-max 2, measured minus 3.1 percent. Whole-cache q4_0 as a speed lever, it is the documented context-maximum option instead.
+
+## Late sweep additions
+
+From the env and field sweep, 2026-09-23. These move to the top of the queue.
+
+1. **Explicit draft KV types.** qwen38-mtp issue 39 records that `-ctkd` and `-ctvd` do not inherit from `-ctk` and `-ctv` and default to f16. Production therefore runs an f16 draft cache today. Sweeping the draft cache to q8_0 and then q4_0 while keeping the main cache at q8_0 is cheap and likely to pay. Source: [issue 39](https://github.com/sudoingX/qwen38-mtp/issues/39).
+2. **Small-KV prefill fix.** The same issue documents a silent trap where stock builds run q5_0 and q5_1 flash-attention prefill on CPU, collapsing prefill from 1492 to 41.5 t/s with no error. Upstream [PR 27140](https://github.com/ggml-org/llama.cpp/pull/27140) adds vectorized dequantization that restores it. Any q5_x or mixed-KV rung needs a build containing that fix and a prefill measurement, because decode-only checks cannot see the trap.
+3. **ngram-mod parameters.** The community comment on PR 27140 reports about plus 27 percent on code and math with `--spec-type draft-mtp,ngram-mod --spec-ngram-mod-n-min 16 --spec-ngram-mod-n-max 64`. Prefer these parameters to the n-min 24 guess in the original queue.
+
+## Methodology overrides
+
+Five timed samples after a discarded warmup per rung, not three. Issue 39 shows a three-prompt median moving 15 percent where the five-run mean moved 1.6. Measure prefill and decode at every point. Run a fit gate before timed arms and record residency before and after. Reject a row on any crash, CPU fallback, missing draft counters or quality failure. Never classify a crash as noise.
