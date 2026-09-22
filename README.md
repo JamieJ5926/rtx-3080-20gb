@@ -2,13 +2,14 @@
 
 Serving benchmarks for a modded GeForce RTX 3080 (20480 MiB, GA102) on CUDA Linux. Not a distro project. Weights are not in this repo.
 
-## Current best: 70.51 tok/s
+## Current best: 72.68 tok/s
 
-ik_llama.cpp + `ubergarm/Qwen3.8-27B-MTP-IQ4_KS.gguf` + MTP n-max 4 + `GGML_CUDA_FORCE_MMQ=1` — 70.51 median generate tok/s (600 tokens, temp 0, n=3), up from the 41.05 Ollama baseline.
+llama-server + `bartowski orcarouter-uncensored IQ4_XS` + `--spec-type draft-mtp` + `-ub 256` at `-c 98304` — 72.68 median generate tok/s (600 tokens, temp 0, n=3), draft acceptance 404/580 (h45, 2026-09-22). Production config and fastest on the box; prior best 71.63 (h42) ran the censored pack at `-c 4096`.
 
 | Model | tok/s | Role |
 |---|---|---|
-| ik IQ4_KS MTP n4 + MMQ | **70.51** | daily driver |
+| llama-server uncensored IQ4_XS + draft-mtp + ub 256 | **72.68** | daily driver, 98304 ctx (h45) |
+| ik IQ4_KS MTP n4 + MMQ | 70.51 | censored bench best (h29) |
 | Bonsai PQ2_0 ternary | 64.1 | co-residency (2× instance), ctx 131072 |
 | orcarouter uncensored IQ4_XS | 60.2 | uncensored option, quality stock-equal |
 | upstream llama.cpp IQ4_XS | 67.9 | reference harness |

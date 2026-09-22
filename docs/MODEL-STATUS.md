@@ -6,13 +6,16 @@ Single box, one RTX 3080 20 GB. Metric: median generate tok/s, 600 tokens, tempe
 
 | Stack | tok/s | Notes |
 |---|---|---|
-| **ik_llama.cpp IQ4_KS + MTP n-max 4 + GGML_CUDA_FORCE_MMQ=1** | **70.51** | current best. `ubergarm/Qwen3.8-27B-MTP-IQ4_KS.gguf` 15.75 GiB (PPL 6.9938 vs BF16 6.9540), `-ngl 99 -c 4096 -fa on --spec-type mtp:n_max=4,p_min=0.0` |
+| **llama-server orcarouter uncensored IQ4_XS + draft-mtp + `-ub 256` at `-c 98304`** | **72.68** | current best (h45, 2026-09-22), the production config. draft 404/580 accepted; default `-ub 512` crashes CUDA OOM in the speculative fattn alloc at this context |
+| ik_llama.cpp IQ4_KS + MTP n-max 4 + GGML_CUDA_FORCE_MMQ=1 + K q8_0 | 71.63 | prior best (h42, 2026-09-20), bench ctx 4096. `ubergarm/Qwen3.8-27B-MTP-IQ4_KS.gguf` 15.75 GiB (PPL 6.9938 vs BF16 6.9540), `-ngl 99 -c 4096 -fa on -ctk q8_0 --spec-type mtp:n_max=4,p_min=0.0` |
+| ik_llama.cpp IQ4_KS + MTP n-max 4 + GGML_CUDA_FORCE_MMQ=1 | 70.51 | prior best, superseded by K-only KV quant |
 | ik_llama.cpp IQ4_KS + MTP n-max 4 | 69.34 | kept before MMQ arm |
 | upstream llama.cpp UD-IQ4_XS + draft-mtp (harness b10809) | 67.9 | day-1 best; same-day control 67.2 |
 | Ollama think-on | 49.3 | 600 tokens all into thinking, empty visible answer |
 
 - n-max 5 (62.96) and 6 (59.70) reverted; n-max 4 confirmed optimum.
-- q8_0 KV unlocks ctx 40960 on the ik stack (upstream f16 OOMed at 8k). At 27.8k fill: prefill 988.6, decode 80.4. Ceiling bisect (h32): clean through 61440, OOM at 63488 — max working context 61440.
+- q8_0 KV unlocks ctx 40960 on the ik stack (upstream f16 OOMed at 8k). At 27.8k fill: prefill 988.6, decode 80.4. Ceiling (h32, q8 K+V): clean through 61440, OOM at 63488 — MTP per-step checkpoint buffers, not KV, bind the growth (h42b). Speed config (q8 K, f16 V, h44) ceiling is lower: 40960 works (64.72 t/s decode), 49152 OOM — f16 V costs ~3 GiB at 41k ctx.
+- Day-3 arms all reverted (h39-h41): UD-IQ4_XS on ik 64.27 (-8.8%), p_min 0.1 68.23 (-3.2%), full q8_0 KV 68.98 (-2.2%).
 
 ## Ternary-Bonsai-2-27B PQ2_0 (secondary)
 
@@ -21,7 +24,7 @@ Two instances co-resident (16.5 GiB) serve two parallel streams at ~30.4 t/s eac
 
 ## Qwen3.8-27B uncensored (orcarouter abliterated, bartowski IQ4_XS)
 
-60.2 median with draft-mtp default (60.0/60.2/60.4); 57.3 at forced n-max 2. **-11.4% vs censored same-class** (FP8-lineage abliteration + requant cost). Quality within ~1 point of stock per the independent Abliterlitics panel (MMLU-Pro -0.04, GSM8K -0.46, HumanEval -0.6, HarmBench ASR 82.2% rank 1/13). Runs on disk at `/home/jamie/models/orcarouter-uncensored-IQ4_XS.gguf`.
+60.2 median with draft-mtp default (60.0/60.2/60.4); 57.3 at forced n-max 2. **-11.4% vs censored same-class** (FP8-lineage abliteration + requant cost). Quality within ~1 point of stock per the independent Abliterlitics panel (MMLU-Pro -0.04, GSM8K -0.46, HumanEval -0.6, HarmBench ASR 82.2% rank 1/13). Runs on disk at `/home/jamie/models/orcarouter-uncensored-IQ4_XS.gguf`. Production server at 98304 ctx (h45, 2026-09-22): 72.68 median with draft-mtp and `-ub 256`; default `-ub 512` OOMs the card at this context.
 
 ## vLLM / HyperQwen (blocked on this card)
 
