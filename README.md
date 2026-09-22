@@ -2,12 +2,13 @@
 
 Serving benchmarks for a modded GeForce RTX 3080 (20480 MiB, GA102) on CUDA Linux. Not a distro project. Weights are not in this repo.
 
-## Current best: 74.00 tok/s
+## Current best: 76.41 tok/s at a 196k window
 
-The turboq qwen35 fork (build `aaa66a5`) + `bartowski orcarouter-uncensored IQ4_XS` + `--spec-type draft-mtp` + `-ub 256` at `-c 98304` runs 74.00 median generate tok/s (600 tokens, temp 0, n=3, h59), with probes reaching 76 to 77 fresh. Depth curve: 50.42 at 33k fill, 40.81 at 91k. Same flags on upstream b10809 measured 72.68 (h45).
+The turboq qwen35 fork (build `aaa66a5`) with the SWA hybrid profile. `--override-kv qwen35.attention.sliding_window=int:4096,qwen35.attention.swa_global_layers=int:8` + `-ctk q4_0 -ctv q4_0` + `--spec-type draft-mtp` at `-c 196608`. Measured 76.41 median fresh (h76), 57.51 at 33k, 54.40 at 91k, 55.54 at 111k, 51.07 at 150k. Exact recall verified at 111k and 150k and degraded at 183k. This beats the dense 98k profile at every point and doubles the window.
 
 | Model | tok/s | Role |
 |---|---|---|
+| turboq fork SWA8 + q4_0 KV + draft-mtp | **76.41** | daily driver, 196608 window (h76) |
 | turboq fork + uncensored IQ4_XS + draft-mtp + ub 256 | **74.00** | daily driver, 98304 ctx (h59) |
 | upstream b10809 + uncensored IQ4_XS + draft-mtp + ub 256 | 72.68 | previous engine (h45) |
 | llama-server base UD-IQ4_XS + draft-mtp + ub 256 | 66.15 | base model, production shape (h47) |

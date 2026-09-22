@@ -6,7 +6,8 @@ Single box, one RTX 3080 20 GB. Metric: median generate tok/s, 600 tokens, tempe
 
 | Stack | tok/s | Notes |
 |---|---|---|
-| **turboq qwen35 fork `aaa66a5` + orcarouter uncensored IQ4_XS + draft-mtp + `-ub 256` at `-c 98304`** | **74.00** | current best (h59, 2026-09-23), the production config. Curve 74.00 fresh, 50.42 at 33k, 40.81 at 91k. Probes reached 76 to 77 fresh. Built at `~/llama.cpp-turboq-mtp` |
+| **turboq qwen35 fork `aaa66a5` SWA hybrid + q4_0 KV + draft-mtp at `-c 196608`** | **76.41** | current best (h76, 2026-09-23), the production config. Curve 76.41 fresh, 57.51 at 33k, 54.40 at 91k, 51.07 at 150k fill. Exact recall PASS at 111k and 150k, FAIL at 183k with literal corruption. SWA window 4096, 8 global layers. Resident 19331 MiB |
+| turboq qwen35 fork `aaa66a5` + orcarouter uncensored IQ4_XS + draft-mtp + `-ub 256` at `-c 98304`, dense q8_0 KV | 74.00 | prior profile (h59, 2026-09-23). Curve 74.00 fresh, 50.42 at 33k, 40.81 at 91k. Superseded by the SWA profile at h76 |
 | upstream llama-server b10809 + orcarouter uncensored IQ4_XS + draft-mtp + `-ub 256` at `-c 98304` | 72.68 | prior engine (h45, 2026-09-22). draft 404/580 accepted; default `-ub 512` crashes CUDA OOM in the speculative fattn alloc at this context |
 | llama-server Qwen3.8-27B-UD-IQ4_XS (base Unsloth) + draft-mtp + `-ub 256` at `-c 98304` | 66.15 | h47, 2026-09-22. draft 400/597; base loses to the uncensored repack at production shape (-9%), inverting the h31 bench-ctx ordering |
 | llama-server Qwen3.8-27B-MTP-IQ4_KS (base ubergarm) | n/a | h46, 2026-09-22. Upstream llama.cpp refuses the pack, `blk.0.attn_qkv.weight` ggml type 144 is ik_llama.cpp-only, so the h42 71.63 figure needs the ik engine |
