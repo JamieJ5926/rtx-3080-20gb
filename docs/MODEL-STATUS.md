@@ -6,7 +6,8 @@ Single box, one RTX 3080 20 GB. Metric: median generate tok/s, 600 tokens, tempe
 
 | Stack | tok/s | Notes |
 |---|---|---|
-| **llama-server orcarouter uncensored IQ4_XS + draft-mtp + `-ub 256` at `-c 98304`** | **72.68** | current best (h45, 2026-09-22), the production config. draft 404/580 accepted; default `-ub 512` crashes CUDA OOM in the speculative fattn alloc at this context |
+| **turboq qwen35 fork `aaa66a5` + orcarouter uncensored IQ4_XS + draft-mtp + `-ub 256` at `-c 98304`** | **74.00** | current best (h59, 2026-09-23), the production config. Curve 74.00 fresh, 50.42 at 33k, 40.81 at 91k. Probes reached 76 to 77 fresh. Built at `~/llama.cpp-turboq-mtp` |
+| upstream llama-server b10809 + orcarouter uncensored IQ4_XS + draft-mtp + `-ub 256` at `-c 98304` | 72.68 | prior engine (h45, 2026-09-22). draft 404/580 accepted; default `-ub 512` crashes CUDA OOM in the speculative fattn alloc at this context |
 | llama-server Qwen3.8-27B-UD-IQ4_XS (base Unsloth) + draft-mtp + `-ub 256` at `-c 98304` | 66.15 | h47, 2026-09-22. draft 400/597; base loses to the uncensored repack at production shape (-9%), inverting the h31 bench-ctx ordering |
 | llama-server Qwen3.8-27B-MTP-IQ4_KS (base ubergarm) | n/a | h46, 2026-09-22. Upstream llama.cpp refuses the pack, `blk.0.attn_qkv.weight` ggml type 144 is ik_llama.cpp-only, so the h42 71.63 figure needs the ik engine |
 | ik_llama.cpp IQ4_KS + MTP n-max 4 + GGML_CUDA_FORCE_MMQ=1 + K q8_0 | 71.63 | prior best (h42, 2026-09-20), bench ctx 4096. `ubergarm/Qwen3.8-27B-MTP-IQ4_KS.gguf` 15.75 GiB (PPL 6.9938 vs BF16 6.9540), `-ngl 99 -c 4096 -fa on -ctk q8_0 --spec-type mtp:n_max=4,p_min=0.0` |
@@ -26,7 +27,7 @@ Two instances co-resident (16.5 GiB) serve two parallel streams at ~30.4 t/s eac
 
 ## Qwen3.8-27B uncensored (orcarouter abliterated, bartowski IQ4_XS)
 
-60.2 median with draft-mtp default (60.0/60.2/60.4); 57.3 at forced n-max 2. **-11.4% vs censored same-class** (FP8-lineage abliteration + requant cost). Quality within ~1 point of stock per the independent Abliterlitics panel (MMLU-Pro -0.04, GSM8K -0.46, HumanEval -0.6, HarmBench ASR 82.2% rank 1/13). Runs on disk at `/home/jamie/models/orcarouter-uncensored-IQ4_XS.gguf`. Production server at 98304 ctx (h45, 2026-09-22): 72.68 median with draft-mtp and `-ub 256`; default `-ub 512` OOMs the card at this context.
+60.2 median with draft-mtp default (60.0/60.2/60.4); 57.3 at forced n-max 2. **-11.4% vs censored same-class** (FP8-lineage abliteration + requant cost). Quality within ~1 point of stock per the independent Abliterlitics panel (MMLU-Pro -0.04, GSM8K -0.46, HumanEval -0.6, HarmBench ASR 82.2% rank 1/13). Runs on disk at `/home/jamie/models/orcarouter-uncensored-IQ4_XS.gguf`. Production server at 98304 ctx runs the turboq fork at 74.00 median (h59, 2026-09-23). Upstream b10809 measured 72.68 (h45). Default `-ub 512` OOMs the card at this context.
 
 ## vLLM / HyperQwen (blocked on this card)
 
