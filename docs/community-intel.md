@@ -97,3 +97,22 @@ Still untried for this card.
 5. Upstream CUDA patches landed after build 10809. The community table shows builds to at least 10873 and rule 6 measured plus 10 to 15 percent from newer builds alone.
 
 The community sweep table still has no 20GB row. A pull request with our h45 pair would be the first.
+
+## Card class playbook, 16GB to 32GB sweep records
+
+Read from the per-card sweep files of qwen38-mtp on 2026-09-22. What transfers to this card and what does not.
+
+| Trick | Where it won | Effect | Transfers here |
+|---|---|---|---|
+| Memory and power overclock | 3090 rows at plus 1200 memory, plus 180 core, 430W | Large, the top 3090 rows are all OC | Blocked. Software OC needs root and VBIOS flash carries brick risk |
+| Power knee at 275 to 350W | 3090 power sweep | 275W is the efficiency knee, 350W the peak | Blocked at 320W stock on this card |
+| Headless display, weights resident | 3090 and 3080 rows | Freed 1004 to 179 MiB, plus 36 percent when it moved offload from 62 to 99 layers | Already ours. This box is console-only and the residency checks read desktop memory 0 |
+| Leaner weights raise the ceiling | 3090 Q2 row reads 38 percent fewer bytes per token and baselines faster than Q4 | Q2 10.7GB beats Q4 17.9GB at baseline | Untested here. Quality tradeoff unmeasured on Qwen |
+| Deeper draft when VRAM allows | 5060 Ti n4 59.3 over n3 53.6, 5090 n4 over n2 | n-max 4 beats 3 when it fits | We SIGSEGV n4 at 98k. Our tight VRAM is the blocker, so freeing KV bytes may unlock it |
+| p-min gating | Only wins on bandwidth-starved Pascal and laptop rigs | Acceptance up, throughput down elsewhere | Reproduced here at minus 10.8 percent. Stay ungated |
+| q4_0 KV | P40 f16 within 2 percent of q4_0 | Buys headroom, little speed | Matches our h56c. The value is the context ceiling |
+| Tensor split before spec flags | Multi-GPU rows, plus 68 percent alone | Not applicable | Single card |
+
+Two corrections to earlier notes. The rebuild expectation shrinks. Rule 6 measured plus 10 to 15 percent on a 5090, but the same test on a 5060 Ti and a 3090 after build b10472 gave plus 1.5 percent at most. Attempt E is now low value. And the MTP arm costs roughly 580 MiB with a hard residency cliff, which is what caps our 98304 window rather than KV arithmetic. Any KV shrink buys both depth speed and ceiling.
+
+The compound hypothesis for the next build. TBQ4 or TBQ3 KV frees enough VRAM that n-max 4 may stop crashing at 98k, and every card class where n4 fits reports it beats n3.
