@@ -1,0 +1,7 @@
+h39 ik + UD-IQ4_XS (14G) MTP n-max 4 MMQ n=3: 64.27 64.69 64.01 median 64.27 (-8.8% vs 70.51) MTP acc 149/181 run1
+h40 ik IQ4_KS p_min 0.1 n=3: 68.08 68.51 68.23 median 68.23 (-3.2%); p_min 0.0 stays optimum
+h41 ik IQ4_KS -ctk q8_0 -ctv q8_0 n=3: 69.16 68.98 68.75 median 68.98 (-2.2%)
+h42 ik IQ4_KS -ctk q8_0 (V f16) n=3: 71.82 71.63 71.52 median 71.63 (+1.6%) KEPT new best
+h42b ctx ceiling re-check with -ctk q8_0: 65536 and 69632 OOM (per_step_alloc MTP checkpoints + KV); q8/q8 also OOM at 65536. Ceiling stays 61440.
+note: ik build prints "main: eval time = ... tokens per second" not upstream "Generation:" anchor
+commands: GGML_CUDA_FORCE_MMQ=1 llama-cli -m <model> -ngl 99 -c 4096 -n 600 --temp 0 -fa on [-ctk q8_0] --spec-type mtp:n_max=4,p_min=0.0 --no-display-prompt -p "<canonical>"

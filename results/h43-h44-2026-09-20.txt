@@ -1,0 +1,3 @@
+h43 n_max 3 on q8K stack n=3: 68.09 67.58 66.69 median 67.58 (-5.7% vs 71.63) reverted
+h44 q8K+f16V ctx ceiling (VRAM-gated, baseline 376MiB): 40960 OK 64.72 t/s decode; 49152 OOM; 57344+ OOM. Full-q8 config keeps 61440 (h32).
+ik build staleness: dc31024 2026-09-17, 6 behind origin/main, no kernel/perf commits -> rebuild skipped
