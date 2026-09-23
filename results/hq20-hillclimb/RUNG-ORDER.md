@@ -14,7 +14,7 @@ The turboq production bars are 76.41 fresh, 57.51 at 33k, and 54.40 at 91k decod
 
 The keep gate per rung comes from the brief verbatim. Keep a rung when at-depth decode improves 10 percent past noise with fresh within 2 percent of its baseline, or when the window grows 50 percent with at-depth cost under 10 percent and recall intact. Otherwise revert in full. A run that misses both bars is recorded as a reverted-option, and its numbers stay in the table.
 
-The quality guardrail runs on every kept rung. It is the four-literal recall at depth from `recall.py` with a unique seed, plus one fixed-prompt output read from `qualityfixed.py`. Any crash, CPU fallback, missing spec counter, or quality failure rejects the row.
+The quality guardrail runs on every kept rung. It is the four-literal recall at depth from `recall.py` with a unique seed, plus one fixed-prompt output read from `qualityfixed.py`. Any arm crash, CPU fallback, missing spec counter, or quality failure rejects the row. The production teardown terminate at the window-stop step is not an arm crash, and the window protocol names it below.
 
 ## Frozen measurement scripts
 
@@ -26,7 +26,7 @@ Every window runs these steps in order.
 
 1. Announce the rung id, the one variable, and the config delta. The banner goes to `receipts/ANNOUNCE.log` before anything moves. The announce is the logged banner and spec echo, and it spends no hub send.
 2. Freeze the overnight supervisor, Mac pid 34846, with `kill -STOP`.
-3. Gate idle traffic. Wait until every production slot on port 8083 reads idle, with a ten minute drain budget, and record residency before the arm.
+3. Gate idle traffic. Wait until the production request log at `/home/jamie/llama/llama-server.log` shows no new bytes across 30 seconds, with a ten minute budget, and record residency before the arm. The `/slots` and `/metrics` endpoints return empty bodies on this build, so the request log is the only state that gates.
 4. Stop `llama-watchdog.service` and kill the production `llama-server` with `pkill -x llama-server`.
 5. Run the arm with the one variable changed, then record residency after.
 6. Restore the launcher from `/home/jamie/llama/llama-serve.sh.h76-savepoint-h77`. Before any launcher points at the turboq binary, the binary must pass `test -x` and a `--version` run. The restored launcher must diff identical to the savepoint. Then start `llama-watchdog.service`.
@@ -34,6 +34,8 @@ Every window runs these steps in order.
 8. Resume the supervisor with `kill -CONT 34846`.
 
 Production must read restored and verified in every path, including arm failure and abort. `window.sh` runs on the Mac and owns the announce, the freeze, the idle gate, the dispatch, the poll, the receipt pull, and the resume. `box-window.sh` runs on the box and owns the production take-down, the arm, the measurement, and the closeout that restores and verifies production. One window is one command per rung.
+
+Every window stop logs one teardown terminate from the `aaa66a5` binary. The SIGTERM exit path runs `std::terminate` in `stream_session_manager::~stream_session_manager()`, and ggml dumps a gdb backtrace into the production log. Classify it as a teardown artifact and never as an arm failure. Evidence lives at `reviews/errors/2026-09-23-llama-server-teardown-terminate.md`.
 
 ## Rung order
 

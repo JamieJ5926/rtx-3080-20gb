@@ -30,23 +30,19 @@ else
 fi
 
 echo "=== idle gate against live traffic ==="
+REQLOG=/home/jamie/llama/llama-server.log
 IDLE=0
-BUSY=unset
+PREV=unset
 for i in $(seq 1 20); do
-  BUSY=$($SSH "curl -s --max-time 5 http://127.0.0.1:8083/slots" | python3 -c 'import json,sys
-try:
-    s=json.load(sys.stdin)
-    print(sum(1 for x in s if x.get("state")!="idle"))
-except Exception:
-    print(-1)')
-  echo "busy_slots=$BUSY poll=$i"
-  if [ "$BUSY" = "0" ]; then IDLE=1; break; fi
-  if [ "$BUSY" = "-1" ]; then break; fi
-  sleep 15
+  CUR=$($SSH "stat -c %s $REQLOG 2>/dev/null || echo 0")
+  echo "request_log_bytes=$CUR poll=$i"
+  if [ "$PREV" != "unset" ] && [ "$CUR" = "$PREV" ] && [ "$CUR" != "0" ]; then IDLE=1; break; fi
+  PREV=$CUR
+  sleep 30
 done
 if [ "$IDLE" != 1 ]; then
-  echo "IDLE_GATE_FAIL busy=$BUSY, window aborted, production left up"
-  echo "ABORTED_IDLE_GATE $RUNG_ID busy=$BUSY $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$RECEIPTS/ANNOUNCE.log"
+  echo "IDLE_GATE_FAIL log_bytes=$CUR, window aborted, production left up"
+  echo "ABORTED_IDLE_GATE $RUNG_ID log_bytes=$CUR $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$RECEIPTS/ANNOUNCE.log"
   exit 1
 fi
 
