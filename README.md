@@ -32,7 +32,18 @@ Same protocol on both, 600 completion tokens, temperature 0, median of n=5 plus 
 
 **Crossover near 7k prompt tokens.** The max-speed profile leads only on a near-empty prompt. By 33k the long-context profile is 2.3x faster. Interpolating the two measured curves, they cross around 6.7k fill at k=3 and 4.7k at k=4 [INFERENCE, from the two measured endpoints]. Below the crossover use the fast profile, above it use the long-context profile.
 
-**Why the fast profile collapses with depth.** Its decode falls 84.69 to 24.79 to 17.61 as the prompt grows. Growing the draft chain to k=4 claws back a large part of that at 60k, 17.61 to 22.65, plus 28.6 percent, with runs of 22.61/22.65/22.65/22.65/22.65. That says part of the collapse is draft-chain starvation rather than a hard kernel limit. It is a kept candidate, not production, and it costs 3.55 percent at fresh. The remaining arms of that sweep are still running.
+**Why the fast profile collapses with depth.** Its decode falls 84.69 to 24.79 to 17.61 as the prompt grows. The suspicion was draft-chain starvation rather than a hard kernel limit, so the draft chain length `DRAFT_TOKENS` was swept at a fixed winning shape. Every arm is one window, five timed runs plus a discarded warmup, 600 tokens, temperature 0.
+
+| arm | fresh | 33k | 60k | verdict |
+|---|---|---|---|---|
+| k=2 (h97) | 79.65 | 26.11 | 17.44 | reverted, fresh fails the floor and 33k misses the bar |
+| **k=3 (h95)** | **84.69** | 24.79 | 17.61 | baseline |
+| k=4 (h98) | 81.68 | 25.30 | **22.65** | **best candidate**, plus 28.6 percent at 60k |
+| k=7 (h99) | 72.88 | **26.54** | not measured | reverted, fresh drops 13.9 percent |
+
+The trend is the finding. **Fresh falls as the chain grows while depth rises at every step out to k=7**, which is what draft-chain starvation predicts and a hard kernel limit does not. At k=4 the gain is entirely at depth, 17.61 to 22.65 on runs of 22.61/22.65/22.65/22.65/22.65, at a cost of 3.55 percent fresh. At k=7 the depth gain holds, plus 7.06 percent at 33k, but fresh falls past the 2 percent floor.
+
+The k=7 arm is also where the sweep stops: a 60k fill under a 7-wide verification did not complete inside the measurement budget, so that arm carries no 60k point and no quality probe. **k=4 is the largest chain that pays and still fits the protocol**, so it is the candidate and k=3 remains the production setting.
 
 ## Long-context profile: 76.41 tok/s at a 196k window
 
