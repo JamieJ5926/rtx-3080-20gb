@@ -1,0 +1,308 @@
+Bind only matching local Qwen3.5 MTP checkpoints, read indexed draft tensors, and skip already-processed shared modules during both layerwise and post-load quantization.
+
+--- exported from cpuchip/vllm 045ea3521 (slim-mtp-shared-loader); regenerate with scripts/export-patch.sh, do not edit ---
+
+diff --git a/model_executor/model_loader/base_loader.py b/model_executor/model_loader/base_loader.py
+index d1f44666c..3a00c1996 100644
+--- a/model_executor/model_loader/base_loader.py
++++ b/model_executor/model_loader/base_loader.py
+@@ -75,7 +75,7 @@
+             # Process weights into kernel format. Note that when using online
+             # quantization, weights are (typically) quantized as they are loaded.
+             if _has_online_quant(model):
+-                finalize_layerwise_processing(model, model_config)
++                finalize_layerwise_processing(model, model_config, skip_modules=getattr(model, "_mtp_shared_modules", ()))
+ 
+             process_weights_after_loading(model, model_config, target_device)
+ 
+diff --git a/model_executor/model_loader/default_loader.py b/model_executor/model_loader/default_loader.py
+index 039a577f8..ef465433a 100644
+--- a/model_executor/model_loader/default_loader.py
++++ b/model_executor/model_loader/default_loader.py
+@@ -1,6 +1,7 @@
+ # SPDX-License-Identifier: Apache-2.0
+ # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
+ import dataclasses
++from contextvars import ContextVar
+ import glob
+ import os
+ import time
+@@ -38,6 +39,7 @@
+ from vllm.transformers_utils.repo_utils import list_filtered_repo_files
+ 
+ logger = init_logger(__name__)
++shared_mtp_target: ContextVar[nn.Module | None] = ContextVar("shared_mtp_target", default=None)
+ 
+ 
+ class DefaultModelLoader(BaseModelLoader):
+@@ -330,14 +332,43 @@
+             fall_back_to_pt=getattr(model, "fall_back_to_pt_during_load", True),
+             allow_patterns_overrides=getattr(model, "allow_patterns_overrides", None),
+         )
+-        yield from self._get_weights_iterator(primary_weights)
++        if getattr(model, "_mtp_draft_only", False):
++            yield from self._get_mtp_weights(primary_weights)
++        else:
++            yield from self._get_weights_iterator(primary_weights)
+ 
+-        secondary_weights = cast(
+-            Iterable[DefaultModelLoader.Source],
+-            getattr(model, "secondary_weights", ()),
+-        )
+-        for source in secondary_weights:
+-            yield from self._get_weights_iterator(source)
++        if not getattr(model, "_mtp_draft_only", False):
++            secondary_weights = cast(
++                Iterable[DefaultModelLoader.Source],
++                getattr(model, "secondary_weights", ()),
++            )
++            for source in secondary_weights:
++                yield from self._get_weights_iterator(source)
++
++    def _get_mtp_weights(self, source: "Source") -> Generator[tuple[str, torch.Tensor], None, None]:
++        import json
++        from pathlib import Path
++
++        from safetensors import safe_open
++
++        model_dir = Path(source.model_or_path)
++        with (model_dir / "model.safetensors.index.json").open() as index_file:
++            weight_map = json.load(index_file)["weight_map"]
++        by_shard: dict[str, list[str]] = {}
++        for name, filename in weight_map.items():
++            if name.startswith("mtp."):
++                by_shard.setdefault(filename, []).append(name)
++        required = ("mtp.fc.", "mtp.layers.", "mtp.norm.", "mtp.pre_fc_norm_hidden.", "mtp.pre_fc_norm_embedding.")
++        missing = [prefix for prefix in required if not any(name.startswith(prefix) for name in weight_map)]
++        if missing:
++            raise ValueError(f"MTP index missing required tensors: {missing}")
++        for filename, names in by_shard.items():
++            with safe_open(model_dir / filename, framework="pt") as checkpoint:
++                missing = sorted(set(names) - set(checkpoint.keys()))
++                if missing:
++                    raise ValueError(f"MTP shard {filename} missing indexed tensors: {missing}")
++                for name in names:
++                    yield source.prefix + name, checkpoint.get_tensor(name)
+ 
+     def download_model(self, model_config: ModelConfig) -> None:
+         self._prepare_weights(
+diff --git a/model_executor/model_loader/reload/layerwise.py b/model_executor/model_loader/reload/layerwise.py
+index 5a73738e1..3c4269664 100644
+--- a/model_executor/model_loader/reload/layerwise.py
++++ b/model_executor/model_loader/reload/layerwise.py
+@@ -225,7 +225,11 @@
+     return online_process_loader
+ 
+ 
+-def finalize_layerwise_processing(model: torch.nn.Module, model_config: ModelConfig):
++def finalize_layerwise_processing(
++    model: torch.nn.Module,
++    model_config: ModelConfig,
++    skip_modules: tuple[torch.nn.Module, ...] = (),
++):
+     """
+     Apply processing to any layers which were not layerwise processed during loading.
+     This includes attention layers and layers which have weight elements which are not
+@@ -244,6 +248,9 @@
+     deferred_attn: list[tuple[torch.nn.Module, LayerReloadingInfo]] = []
+ 
+     for layer in model.modules():
++        if any(layer is shared for shared in skip_modules):
++            get_layerwise_info(layer).reset()
++            continue
+         info = get_layerwise_info(layer)
+         if not info.can_load():
+             info.reset()
+diff --git a/model_executor/model_loader/utils.py b/model_executor/model_loader/utils.py
+index b7ccb78c0..3a18c3c9c 100644
+--- a/model_executor/model_loader/utils.py
++++ b/model_executor/model_loader/utils.py
+@@ -98,6 +98,8 @@
+ ) -> None:
+     for _, module in model.named_modules():
+         quant_method = getattr(module, "quant_method", None)
++        if any(module is shared for shared in getattr(model, "_mtp_shared_modules", ())):
++            continue
+         if isinstance(quant_method, QuantizeMethodBase):
+             # When quant methods need to process weights after loading
+             # (for repacking, quantizing, etc), they expect parameters
+diff --git a/model_executor/models/qwen3_5_mtp.py b/model_executor/models/qwen3_5_mtp.py
+index b28f4f8f9..dda73e9b7 100644
+--- a/model_executor/models/qwen3_5_mtp.py
++++ b/model_executor/models/qwen3_5_mtp.py
+@@ -64,7 +64,7 @@
+ class Qwen3_5MultiTokenPredictor(nn.Module):
+     hf_to_vllm_mapper = Qwen3_5Model.hf_to_vllm_mapper
+ 
+-    def __init__(self, *, vllm_config: VllmConfig, prefix: str = ""):
++    def __init__(self, *, vllm_config: VllmConfig, prefix: str = "", shared_embedding: nn.Module | None = None):
+         super().__init__()
+ 
+         model_config = vllm_config.model_config
+@@ -79,12 +79,15 @@
+         self.mtp_start_layer_idx = config.num_hidden_layers
+         self.num_mtp_layers = getattr(config, "mtp_num_hidden_layers", 1)
+ 
+-        self.embed_tokens = VocabParallelEmbedding(
+-            self.vocab_size,
+-            config.hidden_size,
+-            quant_config=vllm_config.quant_config,
+-            prefix=maybe_prefix(prefix, "embed_tokens"),
+-        )
++        if shared_embedding is not None:
++            self.embed_tokens = shared_embedding
++        else:
++            self.embed_tokens = VocabParallelEmbedding(
++                self.vocab_size,
++                config.hidden_size,
++                quant_config=vllm_config.quant_config,
++                prefix=maybe_prefix(prefix, "embed_tokens"),
++            )
+ 
+         # syv patch: vocab-truncated draft head. If the checkpoint ships
+         # mtp_draft_vocab_ids.pt (built by build_draft_vocab.py) the drafter
+@@ -251,25 +254,38 @@
+             )
+ 
+         self.quant_config = vllm_config.quant_config
++        from vllm.model_executor.model_loader.default_loader import shared_mtp_target
++        shared_target = shared_mtp_target.get()
++        target_inner = shared_target.model if shared_target is not None else None
+ 
+         super().__init__()
+         self.config = config
++        shared_embedding = (
++            getattr(target_inner, "embed_tokens", None) if target_inner is not None else None
++        )
+         self.model = Qwen3_5MultiTokenPredictor(
+-            vllm_config=vllm_config, prefix=maybe_prefix(prefix, "mtp")
++            vllm_config=vllm_config, prefix=maybe_prefix(prefix, "mtp"),
++            shared_embedding=shared_embedding,
+         )
+ 
+         if get_pp_group().is_last_rank:
+-            self.lm_head = ParallelLMHead(
+-                config.vocab_size,
+-                config.hidden_size,
+-                quant_config=self.quant_config,
+-                prefix=maybe_prefix(prefix, "lm_head"),
+-            )
+-            if config.tie_word_embeddings:
+-                self.lm_head = self.lm_head.tie_weights(self.model.embed_tokens)
++            if shared_target is not None:
++                self.lm_head = shared_target.lm_head
++            else:
++                self.lm_head = ParallelLMHead(
++                    config.vocab_size,
++                    config.hidden_size,
++                    quant_config=self.quant_config,
++                    prefix=maybe_prefix(prefix, "lm_head"),
++                )
++                if config.tie_word_embeddings:
++                    self.lm_head = self.lm_head.tie_weights(self.model.embed_tokens)
+         else:
+             self.lm_head = PPMissingLayer()
+ 
++        self._mtp_draft_only = shared_target is not None
++        if shared_target is not None:
++            self._mtp_shared_modules = (self.model.embed_tokens, self.lm_head)
+         self.logits_processor = LogitsProcessor(config.vocab_size)
+         # syv patch: vocab-truncated draft head
+         self.draft_logits_processor = (
+@@ -340,6 +356,9 @@
+     def load_weights(self, weights: Iterable[tuple[str, torch.Tensor]]) -> set[str]:
+         def remap_weight_names(weights):
+             for name, weight in weights:
++                # The target embedding and head never enter the draft loader.
++                if self._mtp_draft_only and not name.startswith("mtp."):
++                    continue
+                 # syv patch: skip the truncated draft head when it is disabled
+                 if "draft_lm_head" in name and self.model.draft_lm_head is None:
+                     continue
+diff --git a/v1/spec_decode/llm_base_proposer.py b/v1/spec_decode/llm_base_proposer.py
+index d5513ed53..4f6123bd7 100644
+--- a/v1/spec_decode/llm_base_proposer.py
++++ b/v1/spec_decode/llm_base_proposer.py
+@@ -1328,12 +1328,26 @@
+         from vllm.compilation.backends import set_model_tag
+ 
+         draft_vllm_config = self._create_draft_vllm_config()
+-        with set_model_tag("eagle_head"):
+-            model = get_model(
+-                vllm_config=draft_vllm_config,
+-                model_config=self.speculative_config.draft_model_config,
+-                load_config=self.speculative_config.draft_load_config,
+-            )
++        target = getattr(self, "_mtp_target_for_load", None)
++        if target is not None:
++            from vllm.model_executor.model_loader.default_loader import DefaultModelLoader
++
++            from vllm.model_executor.model_loader.default_loader import shared_mtp_target
++            token = shared_mtp_target.set(target)
++            try:
++                with set_model_tag("eagle_head"):
++                    model = DefaultModelLoader(
++                        self.speculative_config.draft_load_config
++                    ).load_model(draft_vllm_config, self.speculative_config.draft_model_config)
++            finally:
++                shared_mtp_target.reset(token)
++        else:
++            with set_model_tag("eagle_head"):
++                model = get_model(
++                    vllm_config=draft_vllm_config,
++                    model_config=self.speculative_config.draft_model_config,
++                    load_config=self.speculative_config.draft_load_config,
++                )
+         return model
+ 
+     def load_model(self, target_model: nn.Module) -> None:
+@@ -1344,7 +1358,48 @@
+             ).keys()
+         )
+ 
+-        self.model = self._get_model()
++        from vllm.model_executor.model_loader import get_model_architecture
++        from vllm.model_executor.models.qwen3_5_mtp import Qwen3_5MTP, Qwen3_5MoeMTP
++        from vllm.model_executor.models.qwen3_5 import (
++            Qwen3_5ForCausalLMBase,
++            Qwen3_5ForConditionalGeneration,
++        )
++        from vllm.lora.layers.base import BaseLayerWithLoRA
++
++        draft_cls, _ = get_model_architecture(self.speculative_config.draft_model_config)
++        language_model = (
++            target_model.get_language_model()
++            if hasattr(target_model, "get_language_model") else target_model
++        )
++        target_inner = getattr(language_model, "model", None)
++        target_embed = getattr(target_inner, "embed_tokens", None)
++        can_share = (
++            draft_cls in (Qwen3_5MTP, Qwen3_5MoeMTP)
++            and isinstance(language_model, Qwen3_5ForCausalLMBase)
++            and (
++                target_model is language_model
++                or isinstance(target_model, Qwen3_5ForConditionalGeneration)
++            )
++            and self.speculative_config.draft_model_config.model == self.vllm_config.model_config.model
++            and getattr(self.speculative_config.draft_load_config, "load_format", "auto") in ("auto", "hf", "safetensors")
++            and __import__("os").path.isfile(
++                __import__("os").path.join(self.speculative_config.draft_model_config.model, "model.safetensors.index.json")
++            )
++            and get_pp_group().world_size == 1
++            and not self.vllm_config.lora_config
++            and target_embed is not None
++            and not isinstance(target_embed, BaseLayerWithLoRA)
++            and getattr(language_model, "lm_head", None) is not None
++            and not isinstance(language_model.lm_head, BaseLayerWithLoRA)
++            and not getattr(language_model, "_original_do_torchao_reload", False)
++        )
++        if can_share:
++            self._mtp_target_for_load = language_model
++        try:
++            self.model = self._get_model()
++        finally:
++            if can_share:
++                del self._mtp_target_for_load
+ 
+         # Find draft layers (attention layers added by draft model)
+         all_attn_layers = get_layers_from_vllm_config(

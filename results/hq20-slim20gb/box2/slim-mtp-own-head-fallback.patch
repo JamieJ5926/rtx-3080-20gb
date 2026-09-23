@@ -1,0 +1,45 @@
+Do not prebind a target head when the draft checkpoint declares its own MTP head or embedding tensors.
+
+--- exported from cpuchip/vllm 01963bcae (slim-mtp-own-head-fallback); regenerate with scripts/export-patch.sh, do not edit ---
+
+diff --git a/v1/spec_decode/llm_base_proposer.py b/v1/spec_decode/llm_base_proposer.py
+index c9b8f5a44..f46c6558c 100644
+--- a/v1/spec_decode/llm_base_proposer.py
++++ b/v1/spec_decode/llm_base_proposer.py
+@@ -1359,6 +1359,9 @@
+         )
+ 
+         from vllm.model_executor.model_loader import get_model_architecture
++        import json
++        import os
++
+         from vllm.model_executor.models.qwen3_5_mtp import Qwen3_5MTP, Qwen3_5MoeMTP
+         from vllm.model_executor.models.qwen3_5 import (
+             Qwen3_5ForCausalLMBase,
+@@ -1373,6 +1376,18 @@
+         )
+         target_inner = getattr(language_model, "model", None)
+         target_embed = getattr(target_inner, "embed_tokens", None)
++        index_path = os.path.join(
++            self.speculative_config.draft_model_config.model,
++            "model.safetensors.index.json",
++        )
++        draft_has_own_head = True
++        if os.path.isfile(index_path):
++            with open(index_path) as index_file:
++                weight_names = json.load(index_file)["weight_map"]
++            draft_has_own_head = any(
++                name.startswith(("mtp.lm_head.", "mtp.embed_tokens."))
++                for name in weight_names
++            )
+         can_share = (
+             draft_cls in (Qwen3_5MTP, Qwen3_5MoeMTP)
+             and isinstance(language_model, Qwen3_5ForCausalLMBase)
+@@ -1382,6 +1397,7 @@
+             )
+             and self.speculative_config.draft_model_config.model == self.vllm_config.model_config.model
+             and getattr(self.speculative_config.draft_load_config, "load_format", "auto") in ("auto", "hf", "safetensors")
++            and not draft_has_own_head
+             and __import__("os").path.isfile(
+                 __import__("os").path.join(self.speculative_config.draft_model_config.model, "model.safetensors.index.json")
+             )
