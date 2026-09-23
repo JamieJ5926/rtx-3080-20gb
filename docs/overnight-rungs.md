@@ -51,3 +51,15 @@ From the 2x3090 field writeup, 2026-09-23. Its llama.cpp numbers are below ours,
 2. **Swift-Qwen3.8-27B swap.** The UkisAI fine-tune halves thinking tokens at equal answers, 37 and 37 on the problems where neither hit the ceiling, and cuts a 36-task coding set from 9.6 to 5.5 hours. For agentic use that is bigger than any t/s lever left. Requires a model download and our quality harness plus the compaction probe.
 3. **DFlash2 on the turboq fork.** We burned DFlash2 on the old upstream stack at 46.5 t/s. The fork carries dflash CUDA kernels and the writeup's 212 t/s row is DFlash2 at k=7. Single-consumer case is where DFlash2 wins per their concurrency caveat. Untested combination here.
 4. Their community patched vLLM reached 167.8 before DFlash2, from a smarter verify kernel, a 4-bit output head and a trimmed draft vocabulary, and it refuses checkpoints that do not match its assumptions. Same family as the HyperQwen patches we could not fit at 20GB. Record only.
+
+## Third field sweep additions, EXL3 and the trellis quant class
+
+From the Yume_X EXL3 tier map, 2026-09-23, cross-checked against the exllamav3 reports from the earlier config threads. This is a different engine and quant class, not a GGUF variant, so it is a look-first item rather than a flag rung.
+
+1. **What it is.** EXL3 uses trellis coding with a Hadamard transform so rounding error spreads across each weight vector instead of stacking per weight. The independent teacher-logit panel puts EXL3 4bpw 0.004 nats from BF16 against FP8 at 0.002 and NVFP4 at 0.06. Near-FP8 quality at roughly half the file size is the claim worth testing.
+2. **The rows bracketing our 20GB card.** The 16GB tier runs Qwen3.8-27B at 3.0 bpw with the built-in MTP head at about 55 tok/s code decode with 110k context on a 16GB A5000. The 24GB tier runs 3.5 bpw plus a DFlash2 5.0 bpw drafter at 94 to 150 tok/s with the full 262k resident on a 22GB budget. Our card sits between those tiers.
+3. **The drafter insight transfers directly.** Their quantized drafter cut draft weight reads from 16 bit to 5 and added 33 percent end to end. This is the same lesson as our own draft-KV work but applied to drafter weights, and it is a different lever.
+4. **Engine notes from the field.** The exllamav3 and tabbyAPI reports describe steadier decode at depth and steadier prompt processing than llama.cpp under harness load, with sysmem_kv_cache eviction of old blocks to system RAM for subagent workloads. That eviction class is the adaptive streaming idea from the first sweep.
+5. **Do not confuse with TurboQuant.** The TBQ KV family we measured is a cache compression. EXL3 is a weight compression. They compose rather than compete.
+
+Run order for a future card session. Check the turboderp/Qwen3.8-27B-exl3 branches for a 3.0 and 3.5 bpw pack with the MTP head, stand up tabbyAPI per the earlier exllamav3 rung, and measure the frozen protocol plus the recall frontier against whatever the GGUF stack is producing that day.
