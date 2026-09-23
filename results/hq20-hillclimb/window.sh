@@ -51,7 +51,7 @@ scp -q "$SPEC_SRC" "$BOX:$BOX_R/$RUNG_ID.env"
 scp -q "$R/box-window.sh" "$BOX:$BOX_R/box-window.sh"
 
 echo "=== box window start $(date -u +%H:%M:%SZ) ==="
-$SSH "rm -f $BOX_R/WINDOW_DONE_$RUNG_ID; nohup bash $BOX_R/box-window.sh $BOX_R/$RUNG_ID.env > $BOX_R/$RUNG_ID-ssh.log 2>&1 < /dev/null & echo BOX_PID=\$!"
+$SSH "rm -f $BOX_R/WINDOW_DONE_$RUNG_ID; nohup /bin/bash $BOX_R/box-window.sh $BOX_R/$RUNG_ID.env > $BOX_R/$RUNG_ID-ssh.log 2>&1 < /dev/null & echo BOX_PID=\$!"
 
 DONE=0
 for i in $(seq 1 180); do

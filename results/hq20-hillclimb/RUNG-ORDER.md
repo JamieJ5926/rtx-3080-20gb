@@ -4,9 +4,9 @@ Drafted 2026-09-23 while the GPU gate is held. BuildTest owns the D2 class fix, 
 
 ## Metric, direction, and stop predicate
 
-The primary metric is context usability. It reads as the largest max-model-len that fits and serves with the recall frontier intact, where the frontier is the deepest fill that returns 4 of 4 unique literals. The secondary metric is decode tokens per second at fresh and at depth. Each point is the median of five timed samples of 600 tokens at temperature 0 after one discarded warmup, with prefill and draft acceptance recorded. Direction is window and frontier first, decode second. The noise band is the five-run spread of the released baseline.
+The primary metric is depth decode at the 33k and 60k points, per Main's 2026-09-23 steering that the depth collapse is the problem and fresh is already won. Context usability stays the named deliverable as the largest `max-model-len` that fits and serves with the recall frontier intact, where the frontier is the deepest fill that returns 4 of 4 unique literals. Each point is the median of five timed samples of 600 tokens at temperature 0 after one discarded warmup, with prefill and draft acceptance recorded. Fresh decode is a guardrail held within 2 percent of its baseline. The noise band is the five-run spread of the released baseline.
 
-The stop predicate pairs a target with a floor. The target is one kept HyperQwen config that beats turboq production in one named use class, the daily driver at fresh and 33k, or big inputs at 111k-equivalent and beyond, measured with the same protocol on both sides. The floor is all six rung categories below, each run or explicitly blocked with the reason. An early win does not end the run before the floor. The run ends after the floor when the predicate is met or when the remaining ideas are marginal.
+The stop predicate pairs a target with a floor. The target is one kept HyperQwen config that beats turboq production in one named use class, the daily driver at fresh and 33k, or big inputs at 111k-equivalent and beyond, measured with the same protocol on both sides. The floor is the six rung categories below plus the checkpoint-portability and censorship A/B phases Main added on 2026-09-23, each run or explicitly blocked with the reason. An early win does not end the run before the floor. The run ends after the floor when the predicate is met or when the remaining ideas are marginal.
 
 ## Bars
 
@@ -41,6 +41,8 @@ Every window stop logs one teardown terminate from the `aaa66a5` binary. The SIG
 
 One variable per window. The binding slots come from the BuildTest release. `[WIN_CFG]` is the exact arm env and args. `[BASELINE]` is the curve numbers. `[NOISE]` is the five-run spread. `[KV_AT_DEPTH]` is the KV type that fits at depth. `[SPEC_KNOB]` is `DRAFT_TOKENS` for MTP and `DFLASH_TOKENS` for the DFlash2 verify block, the two settings that feed `num_speculative_tokens` in the launcher spec config. `[ROW_BASE]` is the next free decision id after the release.
 
+Main's depth-first steering of 2026-09-23 reorders execution. The fresh win is banked and fresh is a guardrail only. The problem is the depth collapse at 33k and 60k against the turboq bars, with 93184 fit-blocked, so the depth rungs come first and the int4 per-token-head cost at the 75093-token pool is the thing to understand. Execution order is R2, the draft-chain sweep with 33k as the primary point, then R3, the KV dtype ladder measured at 33k and 60k, then R1b, R4, R5, and R6. R1a was already mid-window when the steering arrived and stays in place because it measures both depth points.
+
 ### R0 inherit
 
 No window. Adopt `[BASELINE]` and `[WIN_CFG]` without rerunning anything, and record the inherited baseline as the first hillclimb row.
@@ -68,6 +70,14 @@ With the winning KV type from R3, find the largest `max-model-len` that fits and
 ### R6 fork env knobs
 
 One knob per window. `VLLM_MARLIN_REPACK_STAGED` at `"1"` and at `"0"` for the load peak, since the unset default is on for sm80 only and both states are arms on this sm86 card. `VLLM_INT4_MQ_3D` at 1 for verify speed on the int4 path. Then cuda-graph capture sizing through the `CG` env knob, which sets `max_cudagraph_capture_size` in the compilation config and defaults to 32, with `VLLM_V2_CUDAGRAPH_MEM_MIB` as the secondary form only if `CG` alone stays flat. `CUDAGRAPH_MODE` stays untouched. Record the load peak and load time on the repack arm. The alexander-ollman writeup found that the verify kernel matters more than the drafter, which is why the int4 verify switch is in the ladder.
+
+### R7 checkpoint portability, the phase after depth
+
+Per Main's 2026-09-23 scope addition and `docs/overnight-rungs.md` under the fourth field sweep. This converts the fork's claim from works on the leminkozey uncensored checkpoint to works on the model class. The prerequisite is a censored packed checkpoint, a W4A16 or AWQ AutoRound pack, either downloaded or produced by the fork's own prepare pipeline against stock weights. Three steps. First, fit and measurement on the standard censored Qwen3.8-27B packed checkpoint in the same shape as the depth mission. Second, the head and vocab calibration on that checkpoint, recorded with the same provenance form as commit 3. Third, the acceptance verdict. The fast path must engage on the second checkpoint, the memory trace must show the same single-read and early-binding behavior, and the fresh and 33k points must land within 10 percent of the uncensored stack's numbers at the same shape. The GGUF-side expectation is about 9 percent slower than the uncensored repack at production shape (66.15 against 72). Any divergence is recorded as a checkpoint-specific finding and never averaged away.
+
+### R8 clean censorship A/B, rung 4 of the fourth sweep
+
+One window on the llama.cpp production stack with `bartowski/Qwen3.8-27B-GGUF` `Qwen3.8-27B-IQ4_XS.gguf` at 15.48 GB, the censored sibling of the production repack at the same quantizer and quant class, with weights-only differences. Frozen protocol against 72.68 fresh and the depth curve, plus the draft acceptance comparison, because the censored pack stores its MTP head at `Q4_0` and the repack may not. The window runs the turboq binary with production flags against the bartowski model, then restores the h76 profile through the closeout.
 
 ## End deliverables
 
