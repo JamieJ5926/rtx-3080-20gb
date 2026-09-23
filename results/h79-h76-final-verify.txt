@@ -1,0 +1,3 @@
+Final h76 runtime check after h79 diagnostic window
+
+HTTP completion command requested 600 tokens with ignore_eos=true. Result returned 600 predicted tokens and HTTP 200. Observed decode 96.42 tok/s, draft accepted 446/457. `/health` returned `{"status":"ok"}`. Watchdog active. Production launcher SHA-256 matches saved h76 file at 3cbeff57f340347d854165afc45d04623c6ba244e87c63545958130c627c6dc1. GPU reported 19331 MiB used and 0% utilization after completion. Mac supervisor PID 34846 was running in state Rs.

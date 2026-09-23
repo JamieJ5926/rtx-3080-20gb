@@ -1,0 +1,15 @@
+h79 instrumented q8_0 262144 MTP diagnostic attempt
+
+Build: /home/jamie/llama.cpp-turboq-mtp/build-h79-trace2/bin/llama-server, separate build, CUDA arch 86, source HEAD aaa66a5e06590754bdc279fe8fe2147b0fc8ec7e plus temporary instrumentation in src/llama-kv-cache.cpp. Target command used h76 options with -c 262144 -ctkd q8_0 -ctvd q8_0. No launcher file edits.
+
+The instrumented cache trace did not run. The attempt failed before cache allocation, while reserving MTP graph compute buffers:
+0.16.066.958 E ggml_backend_cuda_buffer_type_alloc_buffer: allocating 1192.27 MiB on device 0: cudaMalloc failed: out of memory
+0.16.066.970 E ggml_gallocr_reserve_n_impl: failed to allocate CUDA0 buffer of size 1250189440
+0.16.066.970 E graph_reserve: failed to allocate compute buffers
+0.16.068.609 E llama_init_from_model: failed to initialize the context: failed to allocate compute pp buffers
+0.16.068.615 E common_speculative_init_result: failed to create MTP context
+0.16.068.639 E srv    load_model: failed to create MTP context
+
+Therefore this bounded attempt does not identify the owner of the earlier 8589934592-byte KV request. Source formula predicts one q8_0 MTP cache layer with K and V each 285212672 bytes and combined 570425344 bytes, while f16 K+V is 1073741824 bytes. The graph-reserve allocation observed here is 1250189440 bytes, not KV storage. Diagnostic labels were compiled but never emitted because graph reserve failed first. No source correction is supported by this evidence.
+
+Restore: watchdog active, /health returned {"status":"ok"}, h76 command line restored. Main supervisor PID 34846 resumed. No other runtime arms performed.
