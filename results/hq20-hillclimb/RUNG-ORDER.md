@@ -39,7 +39,7 @@ Every window stop logs one teardown terminate from the `aaa66a5` binary. The SIG
 
 ## Rung order
 
-One variable per window. The binding slots come from the BuildTest release. `[WIN_CFG]` is the exact arm env and args. `[BASELINE]` is the curve numbers. `[NOISE]` is the five-run spread. `[KV_AT_DEPTH]` is the KV type that fits at depth. `[SPEC_KNOB]` is the setting name for `num_speculative_tokens`. `[ROW_BASE]` is the next free decision id after the release.
+One variable per window. The binding slots come from the BuildTest release. `[WIN_CFG]` is the exact arm env and args. `[BASELINE]` is the curve numbers. `[NOISE]` is the five-run spread. `[KV_AT_DEPTH]` is the KV type that fits at depth. `[SPEC_KNOB]` is `DRAFT_TOKENS` for MTP and `DFLASH_TOKENS` for the DFlash2 verify block, the two settings that feed `num_speculative_tokens` in the launcher spec config. `[ROW_BASE]` is the next free decision id after the release.
 
 ### R0 inherit
 
@@ -47,15 +47,15 @@ No window. Adopt `[BASELINE]` and `[WIN_CFG]` without rerunning anything, and re
 
 ### R1 gpu-memory-utilization
 
-Values 0.90, 0.95 from the baseline, and 0.9775, at `[WIN_CFG]`. The KV pool size sets the fit ceiling and cache pressure at depth. Acceptance is the keep gate.
+Values 0.90, 0.95 from the baseline, and 0.9775, at `[WIN_CFG]`. The launcher knob is `GPU_UTIL`, which maps to `--gpu-memory-utilization`, and its own default is 0.93 because the DeltaNet workspace in the MTP decode path allocates beyond the startup memory profile. The 0.9775 arm is the crash-risk arm, and a boot failure rejects the row rather than counting as noise. The KV pool size sets the fit ceiling and cache pressure at depth. Acceptance is the keep gate.
 
 ### R2 speculative ladder
 
-`[SPEC_KNOB]` at 2, 3 from the baseline, 4, and 7 with MTP. Then run the drafter-free DFlash2 variants as first-class arms. Set `VLLM_DFLASH2_CHAIN=1` for candidate chains and `VLLM_DFLASH2_LOOKUP=1` for lookup drafting, each at k 2 and k 7. The fork carries the dflash2-ngram-chains and dflash2-lookup-drafting patches with those env families at `vllm/envs.py` lines 181 to 200, and neither mode needs a drafter pack. The quantized drafter pack is not on disk. `/home/jamie/models` holds only the llama.cpp GGUF `Qwen3.8-27B-DFlash2-Q4_K_M.gguf`, and `q38-lemin` carries no separate drafter, so the with-drafter 212-class variant stays pack-gated and listed untested. Record draft acceptance on every arm. The 212 tokens per second class came from DFlash2 at k 7 in single-consumer use, and this box serves one consumer.
+`DRAFT_TOKENS` at 2, 3 from the baseline, 4, and 7 with MTP. The `k=4` arm carries a documented hazard: on fp8 with FlashInfer it crashes once one request finishes while another is mid-generation (vLLM 0.28.0), so this arm runs strictly single-stream and any crash rejects the row. Then run the drafter-free DFlash2 variants as first-class arms under `SPEC=mtp`. Set `VLLM_DFLASH2_CHAIN=1` for candidate chains and `VLLM_DFLASH2_LOOKUP=1` for lookup drafting, each at k 2 and k 7. The fork carries the dflash2-ngram-chains and dflash2-lookup-drafting patches with those env families at `vllm/envs.py` lines 181 to 200, and the chain mode drafts from context, so no drafter pack is needed. The with-drafter 212-class variant is pack-gated. `SPEC=dflash2` refuses to boot without `models/Qwen3.8-27B-DFlash2-W4A16/model.safetensors` under the arm repo, no such pack exists at `/home/jamie/models` or `/home/jamie/qwen-arm20/models`, and `prepare/fetch_dflash2.py` would download it, which the brief does not authorize. Record draft acceptance on every arm. The 212 tokens per second class came from DFlash2 at k 7 in single-consumer use, and this box serves one consumer.
 
 ### R3 KV dtype ladder for depth
 
-fp8 from the baseline, then `int4_per_token_head` with the `TRITON_ATTN` backend, then the kvarn variants the build accepts. Those are `kvarn_k4v2_g128`, `kvarn_k4v4_g128`, `kvarn_k4v2_g64`, and `kvarn_k4v4_g64` from the `CacheDType` literal at `vllm/config/cache.py` line 19. At each dtype map the window and the recall frontier. The mechanism is the KV cost per token, about 20 KiB at int4 per-token-head against about 58 KiB at fp8. Required output is the window and recall frontier per KV type.
+fp8 from the baseline, then `int4_per_token_head` with the `TRITON_ATTN` backend, then the kvarn variants the build accepts. Those are `kvarn_k4v2_g128`, `kvarn_k4v4_g128`, `kvarn_k4v2_g64`, and `kvarn_k4v4_g64` from the `CacheDType` literal at `vllm/config/cache.py` line 19. The backend switch is forced, not chosen: on sm86 the launcher records that both `FLASH_ATTN` and `TRITON_ATTN` refuse fp8, so the fp8 arm runs FlashInfer and the per-token-head arms run `TRITON_ATTN`. At each dtype map the window and the recall frontier. The mechanism is the KV cost per token, about 20 KiB at int4 per-token-head against about 58 KiB at fp8. Required output is the window and recall frontier per KV type.
 
 ### R4 context ladder
 
@@ -63,11 +63,11 @@ With the winning KV type from R3, find the largest `max-model-len` that fits and
 
 ### R5 batch knobs
 
-`max-num-batched-tokens` at 1024 and 4096 against the baseline 2048, and `max-num-seqs` at 1 and 2 against the baseline 8. Single-consumer decode favors fewer and larger batches. Acceptance is the decode bar.
+`--max-num-batched-tokens` at 1024 and 4096 against the 2048 the launcher hardcodes, and `MAX_SEQS`, which maps to `--max-num-seqs`, at 1 and 2 against the baseline 8. The launcher expands `EXTRA_ARGS` after its own flags, so the batched-tokens arms shadow the hardcoded value through `EXTRA_ARGS`, and the config resolver warns about the shadow and proceeds. Single-consumer decode favors fewer and larger batches. Acceptance is the decode bar.
 
 ### R6 fork env knobs
 
-One knob per window. `VLLM_MARLIN_REPACK_STAGED` at `"1"` and at `"0"` for the load peak, since the unset default is on for sm80 only and both states are arms on this sm86 card. `VLLM_INT4_MQ_3D` at 1 for verify speed on the int4 path. Then cuda-graph capture sizing through `VLLM_V2_CUDAGRAPH_MEM_MIB`. Record the load peak and load time on the repack arm. The alexander-ollman writeup found that the verify kernel matters more than the drafter, which is why the int4 verify switch is in the ladder.
+One knob per window. `VLLM_MARLIN_REPACK_STAGED` at `"1"` and at `"0"` for the load peak, since the unset default is on for sm80 only and both states are arms on this sm86 card. `VLLM_INT4_MQ_3D` at 1 for verify speed on the int4 path. Then cuda-graph capture sizing through the `CG` env knob, which sets `max_cudagraph_capture_size` in the compilation config and defaults to 32, with `VLLM_V2_CUDAGRAPH_MEM_MIB` as the secondary form only if `CG` alone stays flat. `CUDAGRAPH_MODE` stays untouched. Record the load peak and load time on the repack arm. The alexander-ollman writeup found that the verify kernel matters more than the drafter, which is why the int4 verify switch is in the ladder.
 
 ## End deliverables
 
@@ -75,6 +75,6 @@ The ladder table carries every rung with config, curve points, acceptance, and v
 
 ## Running untested list
 
-- DFlash2 with the quantized drafter. No vLLM drafter pack exists at `/home/jamie/models` or `/home/jamie/models/q38-lemin`. The llama.cpp GGUF `Qwen3.8-27B-DFlash2-Q4_K_M.gguf` belongs to a different engine.
-- `VLLM_SPEC_DECODE_ATTN` and `VLLM_SPEC_DECODE_ATTN_QMAX`, the split-KV verify kernel switch at `vllm/envs.py` line 219. The brief does not name it. It is the top follow-on candidate because the verify kernel is the named mechanism.
+- DFlash2 with the quantized drafter. The launcher refuses `SPEC=dflash2` without `models/Qwen3.8-27B-DFlash2-W4A16/model.safetensors`, or the unquantized `Qwen3.8-27B-DFlash2`, and no such pack exists at `/home/jamie/models` or `/home/jamie/qwen-arm20/models`, which hold the same llama.cpp GGUFs. `prepare/fetch_dflash2.py` downloads the pack, and the brief gates this rung on the pack existing and does not authorize the download.
+- `VLLM_SPEC_DECODE_ATTN` and `VLLM_SPEC_DECODE_ATTN_QMAX`, the split-KV verify kernel switch at `vllm/envs.py` line 219. The brief does not name it. The launcher sets it for `CTX=fast` and for `SPEC=dflash2 CTX=long`, so the mtp long-context arms run with it off. It is the top follow-on candidate because the verify kernel is the named mechanism.
 - The turboquant KV dtypes and `int8_per_token_head` at `vllm/config/cache.py` lines 28 to 37. They fall outside the briefed R3 order.
