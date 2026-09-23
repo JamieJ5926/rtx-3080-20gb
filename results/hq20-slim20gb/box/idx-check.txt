@@ -1,0 +1,2 @@
+fixture dir: /home/jamie/hq20/idxcheck.ymfjbqtk index file name derived from real dir: model.safetensors.index.json
+INDEX_CHECK PASS raised ValueError: MTP index missing required tensors: ['mtp.fc.', 'mtp.layers.', 'mtp.norm.', 'mtp.pre_fc_norm_hidden.', 'mtp.pre_fc_norm_embedding.']

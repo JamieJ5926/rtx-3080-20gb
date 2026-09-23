@@ -1,0 +1,1 @@
+{"phase": "trace-installed", "ts": 1790129673.8783238, "pid": 543365, "role": "-c", "pypath_set": false, "cuda_ready": false, "rss_bytes": 1040101376, "resident_bytes": -1, "model_path": "", "revision": "", "config": "", "dtype_enum": "", "dtype_name": "", "alloc_conf": "", "python": "3.12.14"}
