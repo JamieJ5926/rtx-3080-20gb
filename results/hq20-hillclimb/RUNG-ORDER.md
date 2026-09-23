@@ -49,7 +49,7 @@ Values 0.90, 0.95 from the baseline, and 0.9775, at `[WIN_CFG]`. The KV pool siz
 
 ### R2 speculative ladder
 
-`[SPEC_KNOB]` at 2, 3 from the baseline, 4, and 7 with MTP. Then DFlash2 at k 2 and k 7. The fork carries the dflash2-ngram-chains and dflash2-lookup-drafting patches, with the `VLLM_DFLASH2_CHAIN` and `VLLM_DFLASH2_LOOKUP` env families at `vllm/envs.py` lines 181 to 200. The quantized drafter pack is not on disk. `/home/jamie/models` holds only the llama.cpp GGUF `Qwen3.8-27B-DFlash2-Q4_K_M.gguf`, and `q38-lemin` carries no separate drafter, so the with-drafter variant stays gated on a pack appearing. Record draft acceptance on every arm. The 212 tokens per second class came from DFlash2 at k 7 in single-consumer use, and this box serves one consumer.
+`[SPEC_KNOB]` at 2, 3 from the baseline, 4, and 7 with MTP. Then run the drafter-free DFlash2 variants as first-class arms. Set `VLLM_DFLASH2_CHAIN=1` for candidate chains and `VLLM_DFLASH2_LOOKUP=1` for lookup drafting, each at k 2 and k 7. The fork carries the dflash2-ngram-chains and dflash2-lookup-drafting patches with those env families at `vllm/envs.py` lines 181 to 200, and neither mode needs a drafter pack. The quantized drafter pack is not on disk. `/home/jamie/models` holds only the llama.cpp GGUF `Qwen3.8-27B-DFlash2-Q4_K_M.gguf`, and `q38-lemin` carries no separate drafter, so the with-drafter 212-class variant stays pack-gated and listed untested. Record draft acceptance on every arm. The 212 tokens per second class came from DFlash2 at k 7 in single-consumer use, and this box serves one consumer.
 
 ### R3 KV dtype ladder for depth
 
