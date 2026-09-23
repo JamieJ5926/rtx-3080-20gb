@@ -1,0 +1,58 @@
+== environment
+  PASS  python: /home/jamie/venv-slim20/bin/python
+  PASS  vllm 0.28.0
+  PASS  vllm package at /home/jamie/venv-slim20/lib/python3.12/site-packages/vllm
+  PASS  python module triton
+  PASS  python module compressed_tensors
+  PASS  flashinfer usable by vLLM (nvcc or flashinfer-cubin present)
+== vLLM patches (order: patches/series)
+  PASS  patches/series lists all 43 patches
+  PASS  qwen3_5-embed-quant.patch applied (content check; hunks overlap another patch)
+  PASS  marlin-int8-layer-select.patch applied (content check; hunks overlap another patch)
+  PASS  marlin-int8-negative-scales.patch applied
+  PASS  qwen3_5-mtp-draft-vocab.patch applied (content check; hunks overlap another patch)
+  PASS  vllm-pr50021-gdn-spec-bounds.patch applied
+  PASS  sampler-small-topk-fast-softmax.patch applied (content check; hunks overlap another patch)
+  PASS  spec-decode-attn.patch applied (content check; hunks overlap another patch)
+  PASS  speed-knobs-envs.patch applied (content check; hunks overlap another patch)
+  PASS  dflash2-backport.patch retired (DFlash2 is native in vLLM 0.28.0)
+  PASS  hybrid-kv-groups-v2-cudagraph.patch applied (content check; hunks overlap another patch)
+  PASS  dflash2-lookup-drafting.patch applied (content check; hunks overlap another patch)
+  PASS  hybrid-sw-block-promote.patch applied
+  PASS  spec-decode-int8-kv.patch applied (content check; hunks overlap another patch)
+  PASS  xgrammar-spec-terminated.patch applied
+  PASS  vision-tower-cpu-offload.patch applied (content check; hunks overlap another patch)
+  PASS  int4-kv-per-token-head.patch applied
+  PASS  marlin-repack-staged-sm80.patch applied (content check; hunks overlap another patch)
+  PASS  offload-dflash-eagle-groups.patch applied (content check; hunks overlap another patch)
+  PASS  dflash2-ngram-chains.patch applied (content check; hunks overlap another patch)
+  PASS  offload-wsl2-devptr.patch applied
+  PASS  spec-decode-int4-kv-mq3d.patch applied (content check; hunks overlap another patch)
+  PASS  dflash2-prewarm.patch applied
+  PASS  marlin-tune-table.patch applied
+  PASS  prefill-attn-int8.patch applied (content check; hunks overlap another patch)
+  PASS  spec-sampler-prewarm.patch applied
+  PASS  mamba-align-checkpoint-order.patch applied
+  PASS  spec-decode-scratch-token-units.patch applied (superseded by spec-decode-scratch-within-budget.patch, which is applied)
+  PASS  mamba-chunked-prefill-align.patch applied
+  PASS  spec-decode-scratch-within-budget.patch applied (content check; hunks overlap another patch)
+  PASS  dflash2-z-adaptive-emitted.patch applied
+  PASS  dspark-draft-quant-config.patch applied
+  PASS  vllm-pr54282-draft-gumbel-salt.patch applied (content check; hunks overlap another patch)
+  PASS  mamba-align-retire-null-gaps.patch applied
+  PASS  offload-mtp-serve.patch applied
+  PASS  engine-completion-log.patch applied
+  PASS  engine-stall-sentinel.patch applied
+  PASS  sse-keep-alive.patch applied
+  PASS  int4-mq3d-envs.patch applied (content check; hunks overlap another patch)
+  PASS  triton-spec-attn-fp8-kv.patch applied
+  PASS  slim-mtp-shared-loader.patch applied (content check; hunks overlap another patch)
+  PASS  slim-mtp-int4-cache.patch applied
+  PASS  slim-mtp-draft-geometry.patch applied
+  PASS  slim-mtp-own-head-fallback.patch applied
+  PASS  int8 layer-select env vars registered in envs.py (live registry)
+== KVarN (optional, kvarn/)
+  PASS  KVarN backend importable, patch applied (KV=kvarn / CTX=huge available)
+  PASS  kvarn-v2-runner-0.28.0.patch applied (SPEC=dflash2 + CTX=huge available)
+
+verify: OK (0 failures)

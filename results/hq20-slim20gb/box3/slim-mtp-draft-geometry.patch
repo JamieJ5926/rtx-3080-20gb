@@ -1,0 +1,55 @@
+Use registered attention layer names to select KV heads and head size for scratch builder, and assert homogeneous group geometry.
+
+--- exported from cpuchip/vllm 6c5db5435 (slim-mtp-draft-geometry); regenerate with scripts/export-patch.sh, do not edit ---
+
+diff --git a/v1/attention/backends/triton_attn.py b/v1/attention/backends/triton_attn.py
+index d053036af..4ebe29301 100644
+--- a/v1/attention/backends/triton_attn.py
++++ b/v1/attention/backends/triton_attn.py
+@@ -9,7 +9,7 @@
+ 
+ import vllm.envs as envs
+ from vllm._aiter_ops import rocm_aiter_ops
+-from vllm.config import CUDAGraphMode, VllmConfig, get_current_vllm_config_or_none
++from vllm.config import CUDAGraphMode, VllmConfig, get_current_vllm_config_or_none, get_layers_from_vllm_config
+ from vllm.config.cache import CacheDType
+ from vllm.logger import init_logger
+ from vllm.model_executor.layers.quantization.utils.quant_utils import (
+@@ -35,6 +35,7 @@
+     get_kv_cache_layout,
+     get_num_attention_heads_from_layers,
+ )
++from vllm.model_executor.layers.attention_layer_base import AttentionLayerBase
+ from vllm.v1.attention.ops.triton_prefill_attention import context_attention_fwd
+ from vllm.v1.attention.ops.triton_reshape_and_cache_flash import (
+     triton_reshape_and_cache_flash,
+@@ -306,8 +307,16 @@
+         self.num_heads_q = get_num_attention_heads_from_layers(
+             vllm_config, layer_names
+         ) or model_config.get_num_attention_heads(vllm_config.parallel_config)
+-        self.num_heads_kv = model_config.get_num_kv_heads(vllm_config.parallel_config)
+-        self.headdim = model_config.get_head_size()
++        attn_layers = get_layers_from_vllm_config(
++            vllm_config, AttentionLayerBase, layer_names
++        )
++        kv_heads = {layer.impl.num_kv_heads for layer in attn_layers.values()}
++        head_sizes = {layer.impl.head_size for layer in attn_layers.values()}
++        assert len(kv_heads) <= 1 and len(head_sizes) <= 1, (
++            f"Attention group has mixed scratch geometry: {layer_names}"
++        )
++        self.num_heads_kv = next(iter(kv_heads), model_config.get_num_kv_heads(vllm_config.parallel_config))
++        self.headdim = next(iter(head_sizes), model_config.get_head_size())
+ 
+         # Check if CUDA Graphs are enabled for decode
+         self.decode_cudagraph_enabled = (
+@@ -340,7 +349,9 @@
+         # requires num_seqs <= seq_threshold_3D, and no batch can carry more query
+         # tokens than the scheduler will place in one, so this is the smallest
+         # capacity that can hold every policy-eligible batch.
+-        plan = mq3d_scratch_plan(self.vllm_config, self.num_heads_q)
++        plan = mq3d_scratch_plan(
++            self.vllm_config, self.num_heads_q, self.num_heads_kv, self.headdim
++        )
+         assert (plan.num_heads_kv, plan.headdim_padded) == (
+             self.num_heads_kv, next_power_of_2(self.headdim)
+         ), "int4 3D scratch plan geometry disagrees with the builder's"

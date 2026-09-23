@@ -1,0 +1,84 @@
+Use draft attention head geometry for the profiled int4 scratch allocation, assert it against draft attention layers, and log scratch dtype enums.
+
+--- exported from cpuchip/vllm 53da3289d (slim-mtp-int4-cache); regenerate with scripts/export-patch.sh, do not edit ---
+
+diff --git a/v1/attention/backends/triton_attn.py b/v1/attention/backends/triton_attn.py
+index 254a5e8e5..d053036af 100644
+--- a/v1/attention/backends/triton_attn.py
++++ b/v1/attention/backends/triton_attn.py
+@@ -108,10 +108,15 @@
+     max_num_seqs: int
+ 
+ 
+-def mq3d_scratch_plan(vllm_config: VllmConfig, num_heads_q: int) -> Mq3dScratchPlan:
++def mq3d_scratch_plan(
++    vllm_config: VllmConfig, num_heads_q: int,
++    num_heads_kv: int | None = None, headdim: int | None = None,
++) -> Mq3dScratchPlan:
+     model_config = vllm_config.model_config
+-    num_heads_kv = model_config.get_num_kv_heads(vllm_config.parallel_config)
+-    headdim = model_config.get_head_size()
++    if num_heads_kv is None:
++        num_heads_kv = model_config.get_num_kv_heads(vllm_config.parallel_config)
++    if headdim is None:
++        headdim = model_config.get_head_size()
+     # The launch grid for the 2D kernel is defined as (num_q_blocks, num_heads_kv).
+     # A lower bound for num_q_blocks is the number of sequences.
+     # To ensure the minimum launch grid size is achieved, the number of sequences
+@@ -219,10 +224,11 @@
+     log(
+         "int4 3D scratch: capacity=%d query tokens (min of max_num_batched_tokens=%d, "
+         "min(max_num_seqs=%d, seq_threshold_3D=%d) * max_query_len_3d=%d); "
+-        "%d B/row, %.2f MiB, allocated at %s%s",
++        "%d B/row, %.2f MiB, output=%s max=%s expsum=%s, allocated at %s%s",
+         plan.capacity, plan.max_num_batched_tokens, plan.max_num_seqs,
+         plan.seq_threshold_3D, plan.max_query_len_3d,
+-        plan.row_bytes, plan.row_bytes * plan.capacity / 2**20, origin,
++        plan.row_bytes, plan.row_bytes * plan.capacity / 2**20,
++        torch.float32, torch.float32, torch.float32, origin,
+         " (inside the memory profile)" if inside
+         else " (AFTER the memory profile: these bytes are not in the KV budget"
+         + ("; ubatching: builders do not share a set)" if fits else ")"),
+@@ -781,16 +787,11 @@
+         else:
+             self.use_td = td_override
+ 
+-        # Allocate the 3D scratch for this layer's head count while the memory
+-        # profile can still see it (Mq3dScratch above); the metadata builder
+-        # adopts it later. Only num_heads is the layer's: head size and KV heads
+-        # are the model config's, as the builder will derive them. Constructed
+-        # without a current config (unit tests), there is nothing to size from
+-        # and the builder allocates, unaccounted, as before.
++        # Draft attention has its own KV-head and head-size geometry.
+         vllm_config = get_current_vllm_config_or_none()
+         if vllm_config is not None and current_platform.is_cuda_alike():
+             mq3d_scratch_acquire(
+-                mq3d_scratch_plan(vllm_config, num_heads),
++                mq3d_scratch_plan(vllm_config, num_heads, num_kv_heads, head_size),
+                 torch.device("cuda", torch.cuda.current_device()),
+                 "model load",
+             )
+diff --git a/v1/spec_decode/llm_base_proposer.py b/v1/spec_decode/llm_base_proposer.py
+index 7bea1ae26..57226bc0d 100644
+--- a/v1/spec_decode/llm_base_proposer.py
++++ b/v1/spec_decode/llm_base_proposer.py
+@@ -1414,6 +1414,19 @@
+             for name in (set(all_attn_layers.keys()) - target_attn_layer_names)
+             if all_attn_layers[name].get_kv_cache_spec(self.vllm_config) is not None
+         }
++        if self._draft_attn_layer_names:
++            from vllm.v1.attention.backends.triton_attn import mq3d_scratch_plan
++
++            for name in sorted(self._draft_attn_layer_names):
++                attn = all_attn_layers[name]
++                impl = attn.impl
++                if hasattr(impl, "num_heads") and hasattr(impl, "num_kv_heads"):
++                    plan = mq3d_scratch_plan(
++                        self.vllm_config, impl.num_heads, impl.num_kv_heads, impl.head_size
++                    )
++                    assert (plan.num_heads_q, plan.num_heads_kv, plan.headdim_padded) == (
++                        impl.num_heads, impl.num_kv_heads, 1 << (impl.head_size - 1).bit_length()
++                    ), f"MTP scratch geometry differs from draft attention layer {name}"
+ 
+         # Even if the target model is multimodal, we can also use
+         # text-only draft models

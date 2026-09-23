@@ -1,0 +1,30 @@
+D3 sweep of the slim-mtp-shared-loader _get_model and DefaultModelLoader path, 2026-09-23
+Scope: vllm/v1/spec_decode/llm_base_proposer.py (_get_model and load_model), vllm/model_executor/model_loader/default_loader.py (DefaultModelLoader), base_loader.py, model_loader/__init__.py (get_model).
+
+draft_load_config dereferences, 3 sites in llm_base_proposer.py:
+- :1340 DefaultModelLoader(self.speculative_config.draft_load_config). WAS AT-RISK. None reached DefaultModelLoader.__init__ and crashed at model_loader_extra_config, the D2 failure. NOW threaded from the normalized _get_model entry local.
+- :1349 load_config=self.speculative_config.draft_load_config. WAS AT-RISK. None reached get_model then load_config.load_format at model_loader/__init__.py:121. NOW threaded from the same local.
+- :1399 getattr(self.speculative_config.draft_load_config, "load_format", "auto"). Guarded by the D1 fix. Unchanged and safe.
+
+The normalization at _get_model entry reads draft_load_config = self.speculative_config.draft_load_config or LoadConfig() with LoadConfig imported from vllm.config.load (class at config/load.py:27). Every dereference below now sees a real object.
+
+DefaultModelLoader load_config dereferences, all requiring a real LoadConfig, all covered:
+- default_loader.py:80 load_config.model_loader_extra_config (the D2 crash site)
+- default_loader.py:84 and :96 load_config.load_format (error text construction)
+- default_loader.py:121 and :126 load_config.safetensors_load_strategy
+- default_loader.py:147 self.load_config.load_format
+- default_loader.py:199, :229 and :263 self.load_config.download_dir
+- default_loader.py:203 self.load_config.ignore_patterns
+- default_loader.py:250 self.load_config.model_loader_extra_config
+- default_loader.py:258 and :269 self.load_config.load_format
+- default_loader.py:266, :274, :277, :283 and :291 self.load_config.use_tqdm_on_load
+- default_loader.py:292 self.load_config.safetensors_load_strategy
+- base_loader.py:50 conditional load_config use in device resolution
+- model_loader/__init__.py:121 load_config.load_format on the get_model fallback path
+
+speculative_config dereferences in the path:
+- self.speculative_config.draft_model_config twice in _get_model. Non-None by construction. The MTP CLI config always resolves draft_model_config (engine logs show SpeculativeConfig(method='mtp', model=..., num_spec_tokens=3)).
+- getattr(self, "_mtp_target_for_load", None) already optional-safe.
+- No other speculative_config attribute dereference in the swept path assumes non-None.
+
+Verdict: after the entry normalization, zero remaining at-risk dereferences in the swept path. No D3 candidate found in scope.
