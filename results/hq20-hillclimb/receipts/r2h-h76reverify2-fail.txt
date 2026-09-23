@@ -1,0 +1,6 @@
+run 1: completion_tokens=600 elapsed=9.88s tok_s=60.74
+run 2: completion_tokens=600 elapsed=9.84s tok_s=60.96
+run 3: completion_tokens=600 elapsed=9.84s tok_s=60.95
+median_decode_tok_s=60.95 n=3 runs=[60.74, 60.96, 60.95]
+timings={"cache_n": 0, "prompt_n": 69, "prompt_ms": 625.724, "prompt_per_token_ms": 9.068463768115942, "prompt_per_second": 110.27226061330553, "predicted_n": 600, "predicted_ms": 9188.326, "predicted_per_token_ms": 15.313876666666665, "predicted_per_second": 65.30025164540311, "draft_n": 612, "draft_n_accepted": 394}
+VERIFY FAIL engine_decode=65.30 draft=394/612

@@ -1,0 +1,2 @@
+version: 1 (aaa66a5)
+built with GNU 16.2.1 for Linux x86_64
