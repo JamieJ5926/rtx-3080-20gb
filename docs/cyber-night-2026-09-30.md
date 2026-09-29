@@ -1,64 +1,68 @@
-# OrcaSAQ-2-Cyber on the RTX 3080 20GB: night of 2026-09-30
+# OrcaSAQ-2-Cyber on the RTX 3080 20GB: findings, night of 2026-09-30
 
-Question: is OrcaSAQ-2-Cyber-Uncensored (the publisher's next version of our daily
-model) a usable daily driver on this box, and if so with what profile?
+Question: is OrcaSAQ-2-Cyber-Uncensored (the publisher's next version of the daily
+model) usable as the daily driver on this box, and with what profile?
 
-All arms run on the box through the frozen harness: `measure.py` medians of five
-timed runs after a discarded warmup, `recall.py` planted-literal probes at the
-listed depths, `qualityfixed.py` for the fixed-literal quality probe. One variable
-per arm. Every row lands in `decision.tsv` with its receipts under
-`results/hq20-hillclimb/runs/` on the box.
+Protocol for every arm: `measure.py` median of five timed runs after a discarded
+warmup (the discarded line also carries a `decode=` value, so medians read from the
+whole file are wrong; the collector reads `run` lines only), `recall.py` planted
+four-literal probes at the named depths with seed 2026092330, `qualityfixed.py` for
+the fixed-literal probe. One variable per arm. Every arm writes a `decision.tsv` row.
 
-## Measured
+## The headline finding, and a correction
 
-| arm | fresh | 33k | 60k | 120k | 180k | recall @60k | recall @150k | quality |
-|---|---|---|---|---|---|---|---|---|
-| Cyber, production shape (SWA 8 globals, q4_0 KV, 196k) | 57.66 | 56.71 | 45.79 | 44.30 | 39.37 | 1/4 | 0/4 | PASS |
-| Cyber, SWA 13 globals | 65.75 | 51.30 | 41.38 | 35.00 | 29.76 | **4/4** | **4/4** | PASS |
-| Cyber, q8_0 KV at a 65k window | 60.24 | - | 46.55 | - | - | 0/4 | - | PASS |
-| Cyber, SWA 8, recall ladder | 61.83 | - | - | - | - | 1/4 (8k 1/4, 16k 0/4, 33k 1/4) | - | PASS |
-| Cyber, SWA 16 globals | invalid: builds asserts `is_swa_any()` |
+**Long-range recall is broken under the SWA 8 profile for both models.** On the
+identical battery and probe:
 
-Old model reference on the same stack, cold card earlier the same day:
-76.41 fresh, 57.51 at 33k, 51.07 at 150k (h76 profile: SWA 8 globals, q4_0 KV, 196k).
+- old daily model (orcarouter-IQ4_XS, SWA 8, 196k): recall **0/4 at 60k, 0/4 at 150k**
+- Cyber (SWA 8, 196k): recall **1/4 at 60k, 0/4 at 150k**
+- Cyber with no SWA override at 32k: recall **4/4 at 16k**
 
-## What the night establishes
+An earlier statement in this run that the old model passes 4/4 on this profile was
+wrong. It rested on the vLLM stack and an older probe format, not on this stack with
+this probe. The production shape has been passing a weaker test than the one used
+here.
 
-1. **Cyber's recall failure is the SWA profile, not the model and not the KV quant.**
-   With 8 global layers and a 4096-token window, 56 of 64 layers see only the last
-   4k tokens, so a planted literal mid-prompt is invisible to them. Cyber fails
-   recall even at 8k under that profile (1/4). Raising globals to 13 fixes it
-   completely: 4/4 at 60k and 4/4 at 150k on the same probes and seed.
+**The mechanism is the 4096-token sliding window.** With 8 global layers, 56 of 64
+layers see only the last 4k tokens, so a planted literal mid-prompt is invisible.
+Cyber fails even at 8k under that profile. Raising the global-layer count restores
+recall completely: 10, 12 and 13 globals all pass 4/4 at both depths; 16 is invalid
+(the build asserts when no windowed layer remains).
 
-2. **The fix costs depth throughput.** 13 globals versus 8: 35.00 vs 44.30 at 120k,
-   29.76 vs 39.37 at 180k, about 20% down. Fresh reads higher on the SWA 13 arm but
-   that is thermal ordering between adjacent arms, not a config win.
+## Speed, warm card, matched arms
 
-3. **KV precision is not a lever here.** q8_0 KV was worse for recall (0/4 versus
-   1/4) and slower (60.24 fresh, 46.55 at 60k), so precision cannot be the cause.
+| arm | fresh | 33k | 60k | 120k | 180k | recall |
+|---|---|---|---|---|---|---|
+| old model, SWA 8 (c8) | 70.54 | 56.41 | 42.16* | 48.69 | 37.49 | 0/4, 0/4 |
+| Cyber, SWA 8, k3 (c4) | 57.66 | 56.71 | 45.79 | 44.30 | 39.37 | 1/4, 0/4 |
+| Cyber, SWA 13, k3 (c5) | 65.75 | 51.30 | 41.38 | 35.00 | 29.76 | 4/4, 4/4 |
+| **Cyber, SWA 13, k4 (c13)** | 51.02 | **59.15** | 44.10 | 35.46 | 31.48 | **4/4, 4/4** |
+| Cyber, SWA 10, k4 (c14) | running | | | | | |
 
-4. **The SWA knob has a hard ceiling.** 16 globals leaves no windowed layer and the
-   build asserts, so 15 is the practical maximum and 13 is the known-good value.
+\* c8's 60k point sits below its own 120k reading, so it is thermally depressed and a
+recheck is queued (c8b).
 
-5. **Cyber is slower than the old model at depth on the same flags** (about 30 versus
-   51 at 150k), with a flatter curve. The warm-card control arm for the old model is
-   queued (c8) so this comparison can be stated exactly.
+Fresh deltas across arms are confounded by card temperature, which is worth about 8%
+(c8 reads 70.54 warm against a 76.41 cold-card reference for the old model). Compare
+arms run back to back, not across the day.
 
-## Open, running tonight
+## Best configuration found
 
-- c3 draft k4 and k5 on Cyber (draft depth was skipped for Cyber so far)
-- ubatch 512 with the agent-turn bench
-- c10 and c12: the minimum globals that still pass recall, to buy the fix as cheaply
-  as possible
-- c8: old model, full-context control on a warm card
-- c9: Cyber with no SWA override at 32k, to see whether it recalls at all when every
-  layer keeps full attention
+**Cyber with SWA globals 13 and draft depth 4.** Full recall at 60k and 150k, quality
+PASS, the best 33k of anything measured (59.15, beating the old model's 56.41), level
+with the old model around 60k, and behind it at fresh and past 120k.
+
+## Still running tonight
+
+- c14 Cyber SWA 10 plus k4, the cheapest strong combination
+- c15 old model with SWA 13, to test whether the recall fix helps it too
+- c9b Cyber SWA 9, to pin the exact minimum globals
+- c8b old model 60k recheck, for the thermally depressed point
 
 ## Recommendation so far
 
-Cyber is usable as a daily **only** with a re-tuned SWA profile (13 globals), which
-buys full-context recall at about 20% of depth throughput. It is still slower at
-depth than the model it would replace. Whether that trade is worth taking depends on
-the c8 control and on how much the cyber fine-tuning is worth in daily use; the
-speed question, on the evidence so far, favours keeping the old model as the
-long-context daily.
+Cyber is usable as a daily **only** with a re-tuned SWA profile (10 to 13 globals).
+With it, Cyber is the better engine from 33k to about 60k and the worse one at fresh
+and beyond 120k. Two separate questions stay open: whether the old model is also
+fixed by more globals (c15), and whether the production SWA 8 shape should have been
+failed on recall long before now, given today's probe says it never passed.
