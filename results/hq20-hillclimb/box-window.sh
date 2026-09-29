@@ -30,6 +30,7 @@ PY=/home/jamie/venv-slim20/bin/python
 closeout() {
   echo "=== CLOSEOUT $RUNG_ID $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
   pkill -f "vllm serve" || true
+  pkill -f hillclimb-port-stub >/dev/null 2>&1 || true
   sleep 5
   echo "residency after arm:"
   nvidia-smi --query-gpu=memory.used --format=csv,noheader
@@ -73,8 +74,64 @@ echo "measure_fills=$MEASURE_FILLS recall_probes=${RECALL_PROBES:-none}"
 echo "=== production down ==="
 systemctl --user stop llama-watchdog.service
 pkill -x llama-server || true
-sleep 3
+PREARM_TIMEOUT=120
+PREARM_INTERVAL=2
+PREARM_ELAPSED=0
+PREARM_READY=0
+while [ "$PREARM_ELAPSED" -lt "$PREARM_TIMEOUT" ]; do
+  PREARM_PGREP_RC=0
+  pgrep -x llama-server >/dev/null || PREARM_PGREP_RC=$?
+  if [ "$PREARM_PGREP_RC" -eq 0 ]; then
+    echo "prearm waiting: llama-server still present"
+  elif [ "$PREARM_PGREP_RC" -eq 1 ]; then
+    PREARM_FREE_MIB="$(nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits 2>/dev/null | head -1)"
+    case "$PREARM_FREE_MIB" in
+      ''|*[!0-9]*) echo "prearm waiting: invalid free VRAM sample=${PREARM_FREE_MIB:-empty}" ;;
+      *)
+        if [ "$PREARM_FREE_MIB" -ge 19047 ]; then
+          echo "prearm ready: llama-server absent, free_vram=${PREARM_FREE_MIB}MiB (>=18.6GiB)"
+          PREARM_READY=1
+          break
+        fi
+        echo "prearm waiting: free_vram=${PREARM_FREE_MIB}MiB (<18.6GiB)"
+        ;;
+    esac
+  else
+    echo "prearm waiting: pgrep failed with status $PREARM_PGREP_RC"
+  fi
+  sleep "$PREARM_INTERVAL"
+  PREARM_ELAPSED=$((PREARM_ELAPSED + PREARM_INTERVAL))
+done
+if [ "$PREARM_READY" -ne 1 ]; then
+  echo "PREARM_GATE_TIMEOUT after ${PREARM_TIMEOUT}s; refusing arm launch"
+  exit 1
+fi
 echo "residency before arm:"
+# Exclusive-window stub: answer :8083/v1/models so external supervisors (Mac
+# overnight-supervisor.sh ensure_llama, ~90s tick) see production as up and do
+# not kill -9 + respawn llama-server mid-window. Diagnosed 2026-09-24: supervisor
+# log "llama DOWN" lines align 1:1 with reverted arms' snapshot deaths (0.54GiB).
+STUB_PY=/tmp/hillclimb-port-stub.py
+cat > "$STUB_PY" <<'PYEOF'
+import http.server, json
+class H(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        body = json.dumps({"object":"list","data":[{"id":"orcarouter-uncensored-IQ4_XS","object":"model"}]}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type","application/json")
+        self.send_header("Content-Length",str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+    def log_message(self,*a): pass
+http.server.HTTPServer(("0.0.0.0",8083),H).serve_forever()
+PYEOF
+nohup python3 "$STUB_PY" >/dev/null 2>&1 &
+STUB_PID=$!
+for i in 1 2 3 4 5; do
+  curl -sf -m 2 http://127.0.0.1:8083/v1/models 2>/dev/null | grep -q orcarouter && break
+  sleep 1
+done
+echo "port stub up pid=$STUB_PID"
 nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.total --format=csv,noheader
 
 env HQT=1 HQTRACE=$R/$RUNG_ID-trace.jsonl HQMODEL=/home/jamie/models/q38-lemin \
@@ -107,6 +164,11 @@ if [ "$HEALTH" = 1 ]; then
       --out "$R/$RUNG_ID-recall$F-seed$S.txt" || echo "REJECT recall fill=$F seed=$S"
   done
   $PY /home/jamie/hq20/qualityfixed.py --out "$R/$RUNG_ID-quality.txt" || echo "REJECT quality"
+  if [ -n "${BENCH_CMD:-}" ]; then
+    echo "=== BENCH_CMD ==="
+    eval "$BENCH_CMD"
+    echo "BENCH_RC $?"
+  fi
 else
   echo "ARM_UNHEALTHY measurement skipped"
 fi
