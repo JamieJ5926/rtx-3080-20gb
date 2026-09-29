@@ -46,6 +46,11 @@ suppress_watchdog() {
 stop_suppressor() { rm -f "$D/SUPPRESS"; }
 
 restore() {
+  # RESTORING_GUARD: restore is both the explicit end call and the EXIT trap;
+  # without this the exit-triggered re-entry loops forever, killing the server
+  # the watchdog just started.
+  [ "${RESTORING_GUARD:-0}" = 1 ] && return 0
+  RESTORING_GUARD=1
   stop_suppressor
   sleep 6
   pkill -x llama-server 2>/dev/null
