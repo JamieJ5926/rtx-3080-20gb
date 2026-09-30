@@ -93,16 +93,37 @@ is corrected here: only the 13-global rung at 196k is beyond this card.
 
 ## Recommendation
 
-**The old model at SWA globals 12, 196k** is the leading candidate once c22 confirms
-its full ladder, and it is the shape to serve if it does: fastest fresh (70.98) and
-fastest at 60k (52.07) of anything measured, recall 4/4 at 60k, and no draft-head
-dependence. Cyber at SWA 13 with k4 stays the fallback and is what production serves
-until the confirmation lands.
+**The old model at SWA globals 12, 196k.** c22 confirmed the full ladder:
+
+| arm | fresh | 33k | 60k | 120k | 180k | recall |
+|---|---|---|---|---|---|---|
+| **old model, SWA 12, 196k (c22)** | **71.44** | 58.65 | **52.32** | 35.36 | 31.46 | **4/4, 4/4** |
+| Cyber, SWA 13, k4, 196k (c13) | 51.02 | 59.15 | 44.10 | 35.46 | 31.48 | 4/4, 4/4 |
+
+Once both are recall-fixed the old model is the better engine: +40% fresh, +18.6% at
+60k, and level at 33k, 120k and 180k, with full recall at 60k and 150k and quality
+PASS.
+
+That result does not support the Cyber adoption on throughput grounds. Cyber's case
+was that it was the publisher's newer model; against the same recall fix it is slower
+at every depth except a 0.5 tok/s tie at 33k. The honest reading is that Cyber was
+never faster — it was measured while the old model was still running the broken SWA-8
+shape, which made the old model look like a recall casualty rather than the faster
+engine.
 
 What changed: the recall failure was never a property of either model. Both are
 fixable by giving the attention stack enough global layers; the question each model
 has is only how many it can afford at the context it must hold. Cyber affords 13 at
-196k, the old model affords 12, and 12 turns out to be the faster engine of the two.
+196k, the old model affords 12, and 12 is both sufficient and faster.
 
-The trade to state plainly: the old model is faster everywhere measured, Cyber is what
-fits the widest window with the most globals. Neither is faster *and* wider.
+## State at the pause
+
+Jamie paused the llama server at about 03:52 on 2026-10-01. The queue runner, the
+arm in flight (c23) and the server were stopped, the watchdog was stopped and masked,
+and the card is free (309 MiB, 0% utilisation, port 8083 closed). Queue env files and
+receipts are untouched, so any arm can be re-run with one `queue-runner.sh` call.
+
+Production's restore savepoint serves Cyber with SWA 13 — recall-correct, and still
+the right thing to serve if Cyber remains the chosen daily. Serving the old model at
+SWA 12 instead is a one-line savepoint swap, and on tonight's numbers it is the faster
+of the two.
