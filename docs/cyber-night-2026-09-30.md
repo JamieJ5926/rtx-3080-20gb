@@ -66,13 +66,23 @@ previous savepoint is kept as `.h76-savepoint-h77.swa8-backup`. Before this, bot
 arm restore and the live daily driver served SWA 8, which fails the recall probe at
 60k and 150k.
 
-## The old model cannot be given the same fix at full context
+## The old model IS recall-fixable at full context
 
 c15 ran the old model with SWA 13 at 196k and died at boot: **CUDA out of memory**,
-`mem_used 19999/20480 MiB` against a 20GB card. Cyber holds that profile at the same
-context, so the old model's KV footprint at 13 globals is larger than Cyber's. Arms
-c18 (SWA 13 at 131k), c19 (SWA 12 at 196k) and c20 (SWA 10 at 196k) pin what it can
-actually hold.
+`mem_used 19999/20480 MiB`. That limit turned out to belong to the 13-global rung at
+196k, not to the fix. The arms that followed:
+
+| arm | config | fresh | 60k | recall (60k) |
+|---|---|---|---|---|
+| c18 | old model, SWA 13, 131k | 72.32 | 46.18 | 4/4 |
+| **c19** | **old model, SWA 12, 196k** | 70.98 | **52.07** | **4/4** |
+| c20 | old model, SWA 10, 196k | 71.22 | 46.39 | 4/4 |
+
+So the old model serves at 196k with 10 or 12 globals and recalls 4/4 in both. c19 is
+the fastest 60k measured by any arm tonight, 18% above Cyber SWA 13 with k4, and it
+recalls where the old model's own SWA-8 shape recalled 0/4 at 45.18. The earlier
+statement that the old model cannot be recall-fixed at full context was too strong and
+is corrected here: only the 13-global rung at 196k is beyond this card.
 
 ## Still running tonight
 
@@ -83,13 +93,16 @@ actually hold.
 
 ## Recommendation
 
-Cyber with **SWA globals 13, draft k4, at 196k** is the daily driver, and it is what
-production now serves. It is the fastest configuration measured that passes the recall
-probe at 60k and 150k, it beats the old model from 33k to 60k, and it gives up fresh
-and past-120k throughput for recall integrity that the old model at SWA 8 does not
-have at all.
+**The old model at SWA globals 12, 196k** is the leading candidate once c22 confirms
+its full ladder, and it is the shape to serve if it does: fastest fresh (70.98) and
+fastest at 60k (52.07) of anything measured, recall 4/4 at 60k, and no draft-head
+dependence. Cyber at SWA 13 with k4 stays the fallback and is what production serves
+until the confirmation lands.
 
-The old model stays the faster engine at fresh and deep context, but only in a shape
-that fails recall; whether a shape exists that both fits the card and recalls is what
-c18 to c20 settle. Until then the trade is explicit: old model is faster, Cyber SWA 13
-is correct.
+What changed: the recall failure was never a property of either model. Both are
+fixable by giving the attention stack enough global layers; the question each model
+has is only how many it can afford at the context it must hold. Cyber affords 13 at
+196k, the old model affords 12, and 12 turns out to be the faster engine of the two.
+
+The trade to state plainly: the old model is faster everywhere measured, Cyber is what
+fits the widest window with the most globals. Neither is faster *and* wider.
